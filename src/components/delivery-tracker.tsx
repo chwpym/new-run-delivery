@@ -6,6 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SettingsSheet } from "@/components/settings-sheet";
 import { Truck, Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle, RotateCcw } from "lucide-react";
 import type { Settings, Status } from '@/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 // Função de cálculo de distância
 function getDistanceInMeters(coord1: GeolocationCoordinates, coord2: GeolocationCoordinates) {
@@ -35,6 +46,8 @@ export default function DeliveryTracker() {
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+
 
   // --- EFEITOS (localStorage) ---
   useEffect(() => {
@@ -67,9 +80,12 @@ export default function DeliveryTracker() {
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
   const handleResetCount = () => {
-    if (window.confirm("Tem certeza que deseja zerar o contador de entregas?")) {
-      setCount(0);
-    }
+    setIsResetDialogOpen(true);
+  };
+  
+  const confirmReset = () => {
+    setCount(0);
+    setIsResetDialogOpen(false);
   };
 
   const processNewPosition = (position: GeolocationPosition) => {
@@ -214,6 +230,20 @@ export default function DeliveryTracker() {
           )}
         </Button>
       </footer>
+       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso irá zerar permanentemente o seu contador de entregas de hoje.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReset}>Sim, zerar contador</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
