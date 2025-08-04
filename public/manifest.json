@@ -1,0 +1,16 @@
+{
+  "name": "RunDelivery",
+  "short_name": "RunDelivery",
+  "description": "Contador de entregas automático e manual para entregadores.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090B",
+  "theme_color": "#09090B",
+  "icons": [
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
