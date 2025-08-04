@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MainMenu } from "@/components/main-menu";
+import { ReportsScreen } from "@/components/reports-screen";
 
 
 // Função de cálculo de distância
@@ -50,6 +51,7 @@ export default function DeliveryTracker() {
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [activeScreen, setActiveScreen] = useState('dashboard');
 
 
   // --- EFEITOS (localStorage) ---
@@ -207,7 +209,7 @@ export default function DeliveryTracker() {
     <div className="flex h-screen flex-col bg-background text-foreground font-headline">
       <header className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
-          <MainMenu />
+          <MainMenu activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
           <h1 className="text-xl font-bold">RunDelivery</h1>
         </div>
         <div className="flex items-center gap-1">
@@ -219,44 +221,54 @@ export default function DeliveryTracker() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-8 p-4 text-center">
-        <Card className="w-full max-w-xs shadow-lg bg-card">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground">Entregas de Hoje</p>
-            <p className="text-8xl font-bold tracking-tighter text-primary">{count}</p>
-          </CardContent>
-        </Card>
+      <main className="flex-1">
+        {activeScreen === 'dashboard' && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-8 p-4 text-center h-full">
+            <Card className="w-full max-w-xs shadow-lg bg-card">
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground">Entregas de Hoje</p>
+                <p className="text-8xl font-bold tracking-tighter text-primary">{count}</p>
+              </CardContent>
+            </Card>
 
-        <div className="flex w-full max-w-xs gap-4">
-          <Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement} aria-label="Remover uma entrega">
-            <Minus className="h-5 w-5 mr-2" /> -1 Entrega
-          </Button>
-          <Button size="lg" className="flex-1" onClick={handleIncrement} aria-label="Adicionar uma entrega">
-            <Plus className="h-5 w-5 mr-2" /> +1 Entrega
-          </Button>
-        </div>
+            <div className="flex w-full max-w-xs gap-4">
+              <Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement} aria-label="Remover uma entrega">
+                <Minus className="h-5 w-5 mr-2" /> -1 Entrega
+              </Button>
+              <Button size="lg" className="flex-1" onClick={handleIncrement} aria-label="Adicionar uma entrega">
+                <Plus className="h-5 w-5 mr-2" /> +1 Entrega
+              </Button>
+            </div>
 
-        <StatusDisplay />
+            <StatusDisplay />
+          </div>
+        )}
+
+        {activeScreen === 'reports' && (
+          <ReportsScreen />
+        )}
       </main>
 
-      <footer className="p-4">
-        <Button 
-          size="lg" 
-          className="w-full h-16 text-lg font-bold"
-          onClick={handleToggleTracking}
-          variant={isTracking ? "destructive" : "default"}
-        >
-          {isTracking ? (
-            <>
-              <Square className="h-6 w-6 mr-3" /> Parar Rota
-            </>
-          ) : (
-            <>
-              <Play className="h-6 w-6 mr-3" /> Iniciar Rota
-            </>
-          )}
-        </Button>
-      </footer>
+      {activeScreen === 'dashboard' && (
+        <footer className="p-4">
+          <Button 
+            size="lg" 
+            className="w-full h-16 text-lg font-bold"
+            onClick={handleToggleTracking}
+            variant={isTracking ? "destructive" : "default"}
+          >
+            {isTracking ? (
+              <>
+                <Square className="h-6 w-6 mr-3" /> Parar Rota
+              </>
+            ) : (
+              <>
+                <Play className="h-6 w-6 mr-3" /> Iniciar Rota
+              </>
+            )}
+          </Button>
+        </footer>
+      )}
        <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
