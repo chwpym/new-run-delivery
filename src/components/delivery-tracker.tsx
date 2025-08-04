@@ -109,14 +109,17 @@ export default function DeliveryTracker() {
     };
 
   const handleToggleTracking = () => {
-    // Se está parando o rastreamento
-    if (isTracking) {
+    if (isTracking && watchIdRef.current !== null) {
+      // Se já está rastreando e o usuário clica para parar.
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
       setIsTracking(false);
-      // A linha abaixo que atualiza o status já existe e vai funcionar
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
+      }
       return;
     }
 
@@ -139,8 +142,15 @@ export default function DeliveryTracker() {
             processNewPosition(currentPosition);
           },
           (error) => {
-            console.error("Erro no watchPosition:", error);
-            // setStatus("GPS Error"); // Você pode adicionar isso depois
+            console.error("Erro durante o rastreamento:", error);
+            // Limpa o watch ID antigo para garantir que não haja duplicatas
+            if (watchIdRef.current !== null) {
+              navigator.geolocation.clearWatch(watchIdRef.current);
+              watchIdRef.current = null;
+            }
+            // Tenta reiniciar o rastreamento
+            setIsTracking(false); // Força o estado para 'parado'
+            setTimeout(() => handleToggleTracking(), 2000); // Tenta reiniciar após 2 segundos
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
