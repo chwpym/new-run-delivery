@@ -36,8 +36,8 @@ export default function DeliveryTracker() {
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const FAKE_ORIGIN = { latitude: -21.669942, longitude: -49.746551, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
-  const FAKE_DELIVERY_SPOT = { latitude: -21.6786, longitude: -49.7425, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
+  const FAKE_ORIGIN = { latitude: -21.669942, longitude: -49.746551, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
+  const FAKE_DELIVERY_SPOT = { latitude: -21.6786, longitude: -49.7425, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
   const FAKE_DELIVERY_SPOT_2 = { latitude: -21.70, longitude: -49.75, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
 
 
@@ -186,12 +186,12 @@ export default function DeliveryTracker() {
   
   const handleTestMovement = () => {
     console.log("TESTE: Simulando movimento...");
-    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 15 }, timestamp: Date.now() });
+    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 15 } as GeolocationCoordinates, timestamp: Date.now() });
   };
   
   const handleTestStop = () => {
     console.log("TESTE: Simulando parada no local de entrega...");
-    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 0 }, timestamp: Date.now() });
+    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 0 } as GeolocationCoordinates, timestamp: Date.now() });
   };
 
   const handleTestStop2 = () => {
