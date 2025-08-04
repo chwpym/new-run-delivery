@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SettingsSheet } from "@/components/settings-sheet";
@@ -17,6 +17,7 @@ export default function DeliveryTracker() {
     stopDuration: 60,
     baseRadius: 200,
   });
+  const watchIdRef = useRef<number | null>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -54,7 +55,52 @@ export default function DeliveryTracker() {
 
   const handleIncrement = () => setCount(c => c + 1);
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
-  const handleToggleTracking = () => setIsTracking(t => !t);
+  
+  const handleToggleTracking = () => {
+    // Se está parando o rastreamento
+    if (isTracking) {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      setIsTracking(false);
+      // A linha abaixo que atualiza o status já existe e vai funcionar
+      return;
+    }
+  
+    // Se está iniciando o rastreamento
+    if (!navigator.geolocation) {
+      // setStatus("GPS Error"); // Você pode adicionar isso depois
+      alert("Geolocalização não é suportada pelo seu navegador.");
+      return;
+    }
+  
+    navigator.geolocation.getCurrentPosition(
+      (initialPosition) => {
+        // Sucesso ao obter a posição inicial
+        setIsTracking(true);
+  
+        // Inicia o monitoramento contínuo
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (currentPosition) => {
+            // A lógica para processar a nova posição virá aqui
+            console.log('Nova Posição:', currentPosition.coords);
+          },
+          (error) => {
+            console.error("Erro no watchPosition:", error);
+            // setStatus("GPS Error"); // Você pode adicionar isso depois
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      },
+      (error) => {
+        // Erro ao obter a posição inicial (provavelmente permissão negada)
+        console.error("Erro de permissão:", error);
+        alert(`Erro ao obter localização: ${error.message}`);
+        // setStatus("GPS Error"); // Você pode adicionar isso depois
+      }
+    );
+  };
 
   const StatusDisplay = () => {
     const statusInfo = {
