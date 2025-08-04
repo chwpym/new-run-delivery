@@ -45,6 +45,7 @@ export default function DeliveryTracker() {
     baseRadius: 200,
   });
   const watchIdRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,6 +72,26 @@ export default function DeliveryTracker() {
   useEffect(() => {
     if (isMounted) localStorage.setItem('runDeliverySettings', JSON.stringify(settings));
   }, [settings, isMounted]);
+  
+  // --- Wake Lock ---
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('Wake Lock ativado!');
+      } catch (err: any) {
+        console.error(`${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+      console.log('Wake Lock liberado.');
+    }
+  };
 
   // --- LÓGICA PRINCIPAL ---
   const status: Status = useMemo(() => {
@@ -122,6 +143,7 @@ export default function DeliveryTracker() {
         watchIdRef.current = null;
       }
       setIsTracking(false);
+      releaseWakeLock();
       if (stopTimerRef.current) {
         clearTimeout(stopTimerRef.current);
         stopTimerRef.current = null;
@@ -138,12 +160,14 @@ export default function DeliveryTracker() {
       (initialPosition) => {
         setOrigin(initialPosition.coords);
         setIsTracking(true);
+        requestWakeLock();
         watchIdRef.current = navigator.geolocation.watchPosition(
           processNewPosition,
           (error) => {
             console.error("Erro durante o rastreamento:", error);
             if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
             setIsTracking(false);
+            releaseWakeLock();
           },
           { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
         );
