@@ -4,24 +4,25 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SettingsSheet } from "@/components/settings-sheet";
-import { Truck, Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle } from "lucide-react";
+import { Truck, Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle, RotateCcw } from "lucide-react";
 import type { Settings, Status } from '@/types';
 
+// Função de cálculo de distância
 function getDistanceInMeters(coord1: GeolocationCoordinates, coord2: GeolocationCoordinates) {
   const R = 6371e3; // Raio da Terra em metros
   const lat1 = coord1.latitude * Math.PI / 180;
   const lat2 = coord2.latitude * Math.PI / 180;
   const deltaLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
   const deltaLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
-    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export default function DeliveryTracker() {
+  // --- ESTADOS E REFS ---
   const [isMounted, setIsMounted] = useState(false);
   const [count, setCount] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
@@ -31,45 +32,32 @@ export default function DeliveryTracker() {
     baseRadius: 200,
   });
   const watchIdRef = useRef<number | null>(null);
-  const [lastPosition, setLastPosition] = useState<GeolocationCoordinates | null>(null);
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const FAKE_ORIGIN = { latitude: -21.669942, longitude: -49.746551, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
-  const FAKE_DELIVERY_SPOT = { latitude: -21.6786, longitude: -49.7425, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
-  const FAKE_DELIVERY_SPOT_2 = { latitude: -21.70, longitude: -49.75, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
-
-
-  // Load state from localStorage on mount
+  // --- EFEITOS (localStorage) ---
   useEffect(() => {
     try {
       const savedCount = localStorage.getItem('runDeliveryCount');
       if (savedCount) setCount(JSON.parse(savedCount));
-
       const savedSettings = localStorage.getItem('runDeliverySettings');
       if (savedSettings) setSettings(JSON.parse(savedSettings));
-
     } catch (error) {
       console.error("Failed to parse from localStorage", error);
     }
     setIsMounted(true);
   }, []);
 
-  // Save count to localStorage
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('runDeliveryCount', JSON.stringify(count));
-    }
+    if (isMounted) localStorage.setItem('runDeliveryCount', JSON.stringify(count));
   }, [count, isMounted]);
 
-  // Save settings to localStorage
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('runDeliverySettings', JSON.stringify(settings));
-    }
+    if (isMounted) localStorage.setItem('runDeliverySettings', JSON.stringify(settings));
   }, [settings, isMounted]);
 
+  // --- LÓGICA PRINCIPAL ---
   const status: Status = useMemo(() => {
     if (isTracking) return "Tracking Active";
     return "Paused";
@@ -78,44 +66,39 @@ export default function DeliveryTracker() {
   const handleIncrement = () => setCount(c => c + 1);
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
+  const handleResetCount = () => {
+    if (window.confirm("Tem certeza que deseja zerar o contador de entregas?")) {
+      setCount(0);
+    }
+  };
+
   const processNewPosition = (position: GeolocationPosition) => {
     const { coords } = position;
     const speed = coords.speed === null ? 0 : coords.speed * 3.6; // km/h
-      // Se estiver se movendo, cancela qualquer timer de parada
-      if (speed > 2) {
-        if (stopTimerRef.current) {
-          clearTimeout(stopTimerRef.current);
-          stopTimerRef.current = null;
-        }
-        return;
-      }
-    
-      // Se já existe um timer de parada rodando, não faz nada
+    if (speed > 2) {
       if (stopTimerRef.current) {
-        return;
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
       }
-    
-      // Se está parado, inicia um timer
-      stopTimerRef.current = setTimeout(() => {
-        if (!settings.autoCount || !origin) return;
-    
-        const distanceFromOrigin = getDistanceInMeters(coords, origin);
-        if (distanceFromOrigin < settings.baseRadius) return;
-    
-        if (lastDeliveryLocation) {
-          const distanceFromLast = getDistanceInMeters(coords, lastDeliveryLocation);
-          if (distanceFromLast < 150) return; // Evita contagem dupla
-        }
-    
-        handleIncrement(); // Reutiliza a função de incremento manual
-        setLastDeliveryLocation(coords);
-        stopTimerRef.current = null; // Limpa o timer após a contagem
-      }, settings.stopDuration * 1000); // Converte segundos para milissegundos
-    };
+      return;
+    }
+    if (stopTimerRef.current) return;
+    stopTimerRef.current = setTimeout(() => {
+      if (!settings.autoCount || !origin) return;
+      const distanceFromOrigin = getDistanceInMeters(coords, origin);
+      if (distanceFromOrigin < settings.baseRadius) return;
+      if (lastDeliveryLocation) {
+        const distanceFromLast = getDistanceInMeters(coords, lastDeliveryLocation);
+        if (distanceFromLast < 150) return;
+      }
+      handleIncrement();
+      setLastDeliveryLocation(coords);
+      stopTimerRef.current = null;
+    }, settings.stopDuration * 1000);
+  };
 
   const handleToggleTracking = () => {
-    if (isTracking && watchIdRef.current !== null) {
-      // Se já está rastreando e o usuário clica para parar.
+    if (isTracking) {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -128,47 +111,33 @@ export default function DeliveryTracker() {
       return;
     }
 
-    // Se está iniciando o rastreamento
     if (!navigator.geolocation) {
-      // setStatus("GPS Error"); // Você pode adicionar isso depois
       alert("Geolocalização não é suportada pelo seu navegador.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (initialPosition) => {
-        // Sucesso ao obter a posição inicial
-        setOrigin(FAKE_ORIGIN);
+        setOrigin(initialPosition.coords);
         setIsTracking(true);
-
-        // Inicia o monitoramento contínuo
         watchIdRef.current = navigator.geolocation.watchPosition(
-          (currentPosition) => {
-            processNewPosition(currentPosition);
-          },
+          processNewPosition,
           (error) => {
             console.error("Erro durante o rastreamento:", error);
-            // Limpa o watch ID antigo para garantir que não haja duplicatas
-            if (watchIdRef.current !== null) {
-              navigator.geolocation.clearWatch(watchIdRef.current);
-              watchIdRef.current = null;
-            }
-            // Tenta reiniciar o rastreamento
-            setIsTracking(false); // Força o estado para 'parado'
-            setTimeout(() => handleToggleTracking(), 2000); // Tenta reiniciar após 2 segundos
+            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+            setIsTracking(false);
           },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
         );
       },
       (error) => {
-        // Erro ao obter a posição inicial (provavelmente permissão negada)
         console.error("Erro de permissão:", error);
         alert(`Erro ao obter localização: ${error.message}`);
-        // setStatus("GPS Error"); // Você pode adicionar isso depois
       }
     );
   };
 
+  // --- COMPONENTES DE UI E RENDERIZAÇÃO ---
   const StatusDisplay = () => {
     const statusInfo = {
       "Paused": { icon: <PauseCircle className="h-4 w-4" />, text: "Pausado", color: "text-muted-foreground" },
@@ -182,25 +151,6 @@ export default function DeliveryTracker() {
         <span>{currentStatus.text}</span>
       </div>
     );
-  };
-  
-  const handleTestMovement = () => {
-    console.log("TESTE: Simulando movimento...");
-    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 15 } as GeolocationCoordinates, timestamp: Date.now() });
-  };
-  
-  const handleTestStop = () => {
-    console.log("TESTE: Simulando parada no local de entrega...");
-    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 0 } as GeolocationCoordinates, timestamp: Date.now() });
-  };
-
-  const handleTestStop2 = () => {
-    console.log("TESTE: Simulando parada no SEGUNDO local de entrega...");
-    const fakePosition: GeolocationPosition = {
-      coords: { ...FAKE_DELIVERY_SPOT_2, speed: 0 } as GeolocationCoordinates,
-      timestamp: Date.now()
-    };
-    processNewPosition(fakePosition);
   };
 
   if (!isMounted) {
@@ -218,7 +168,12 @@ export default function DeliveryTracker() {
           <Truck className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold">RunDelivery</h1>
         </div>
-        <SettingsSheet settings={settings} setSettings={setSettings} />
+        <div className="flex items-center">
+          <Button onClick={handleResetCount} variant="ghost" size="icon" aria-label="Zerar contador">
+            <RotateCcw className="h-5 w-5" />
+          </Button>
+          <SettingsSheet settings={settings} setSettings={setSettings} />
+        </div>
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-8 p-4 text-center">
@@ -239,11 +194,6 @@ export default function DeliveryTracker() {
         </div>
 
         <StatusDisplay />
-        <div className="mt-4 flex gap-2 border-t-2 border-dashed border-gray-700 pt-4">
-          <Button onClick={handleTestMovement} variant="secondary" size="sm">Teste: Mover</Button>
-          <Button onClick={handleTestStop} variant="secondary" size="sm">Teste: Parar</Button>
-          <Button onClick={handleTestStop2} variant="secondary" size="sm">Teste: Parar (Local 2)</Button>
-        </div>
       </main>
 
       <footer className="p-4">
