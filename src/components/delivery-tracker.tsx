@@ -7,6 +7,19 @@ import { SettingsSheet } from "@/components/settings-sheet";
 import { Truck, Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle } from "lucide-react";
 import type { Settings, Status } from '@/types';
 
+function getDistanceInMeters(coord1: GeolocationCoordinates, coord2: GeolocationCoordinates) {
+  const R = 6371e3; // Raio da Terra em metros
+  const lat1 = coord1.latitude * Math.PI / 180;
+  const lat2 = coord2.latitude * Math.PI / 180;
+  const deltaLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+  const deltaLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
 
 export default function DeliveryTracker() {
   const [isMounted, setIsMounted] = useState(false);
@@ -18,6 +31,10 @@ export default function DeliveryTracker() {
     baseRadius: 200,
   });
   const watchIdRef = useRef<number | null>(null);
+  const [lastPosition, setLastPosition] = useState<GeolocationCoordinates | null>(null);
+  const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
+  const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
+  const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -40,14 +57,14 @@ export default function DeliveryTracker() {
       localStorage.setItem('runDeliveryCount', JSON.stringify(count));
     }
   }, [count, isMounted]);
-  
+
   // Save settings to localStorage
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('runDeliverySettings', JSON.stringify(settings));
     }
   }, [settings, isMounted]);
-  
+
   const status: Status = useMemo(() => {
     if (isTracking) return "Tracking Active";
     return "Paused";
@@ -55,7 +72,42 @@ export default function DeliveryTracker() {
 
   const handleIncrement = () => setCount(c => c + 1);
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
-  
+
+  const processNewPosition = (position: GeolocationPosition) => {
+    const { coords } = position;
+    const speed = coords.speed === null ? 0 : coords.speed * 3.6; // km/h
+      // Se estiver se movendo, cancela qualquer timer de parada
+      if (speed > 2) {
+        if (stopTimerRef.current) {
+          clearTimeout(stopTimerRef.current);
+          stopTimerRef.current = null;
+        }
+        return;
+      }
+    
+      // Se já existe um timer de parada rodando, não faz nada
+      if (stopTimerRef.current) {
+        return;
+      }
+    
+      // Se está parado, inicia um timer
+      stopTimerRef.current = setTimeout(() => {
+        if (!settings.autoCount || !origin) return;
+    
+        const distanceFromOrigin = getDistanceInMeters(coords, origin);
+        if (distanceFromOrigin < settings.baseRadius) return;
+    
+        if (lastDeliveryLocation) {
+          const distanceFromLast = getDistanceInMeters(coords, lastDeliveryLocation);
+          if (distanceFromLast < 150) return; // Evita contagem dupla
+        }
+    
+        handleIncrement(); // Reutiliza a função de incremento manual
+        setLastDeliveryLocation(coords);
+        stopTimerRef.current = null; // Limpa o timer após a contagem
+      }, settings.stopDuration * 1000); // Converte segundos para milissegundos
+    };
+
   const handleToggleTracking = () => {
     // Se está parando o rastreamento
     if (isTracking) {
@@ -67,24 +119,24 @@ export default function DeliveryTracker() {
       // A linha abaixo que atualiza o status já existe e vai funcionar
       return;
     }
-  
+
     // Se está iniciando o rastreamento
     if (!navigator.geolocation) {
       // setStatus("GPS Error"); // Você pode adicionar isso depois
       alert("Geolocalização não é suportada pelo seu navegador.");
       return;
     }
-  
+
     navigator.geolocation.getCurrentPosition(
       (initialPosition) => {
         // Sucesso ao obter a posição inicial
+        setOrigin(initialPosition.coords);
         setIsTracking(true);
-  
+
         // Inicia o monitoramento contínuo
         watchIdRef.current = navigator.geolocation.watchPosition(
           (currentPosition) => {
-            // A lógica para processar a nova posição virá aqui
-            console.log('Nova Posição:', currentPosition.coords);
+            processNewPosition(currentPosition);
           },
           (error) => {
             console.error("Erro no watchPosition:", error);
