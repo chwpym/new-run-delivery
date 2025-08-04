@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { MainMenu } from "@/components/main-menu";
 
 
 // Função de cálculo de distância
@@ -182,7 +183,7 @@ export default function DeliveryTracker() {
     <div className="flex h-screen flex-col bg-background text-foreground font-headline">
       <header className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
-          <Truck className="h-6 w-6 text-primary" />
+          <MainMenu />
           <h1 className="text-xl font-bold">RunDelivery</h1>
         </div>
         <div className="flex items-center gap-1">
