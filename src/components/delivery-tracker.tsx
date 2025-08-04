@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 
 // Função de cálculo de distância
@@ -184,7 +185,8 @@ export default function DeliveryTracker() {
           <Truck className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold">RunDelivery</h1>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
           <Button onClick={handleResetCount} variant="ghost" size="icon" aria-label="Zerar contador">
             <RotateCcw className="h-5 w-5" />
           </Button>
