@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Home, BarChart2, Settings } from "lucide-react";
+import {
+  Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
+  Building, Car, LogOut
+} from "lucide-react";
 
 type MainMenuProps = {
   activeScreen: string;
@@ -25,24 +28,66 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px]">
+      <SheetContent side="left" className="w-[280px] flex flex-col">
         <SheetHeader>
           <SheetTitle className="text-left">Menu Principal</SheetTitle>
         </SheetHeader>
-        <nav className="mt-8 flex flex-col gap-2">
-          <Button variant={activeScreen === 'dashboard' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('dashboard')}>
-            <Home className="mr-3 h-5 w-5" />
-            Dashboard
-          </Button>
-          <Button variant={activeScreen === 'reports' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('reports')}>
-            <BarChart2 className="mr-3 h-5 w-5" />
-            Relatórios
-          </Button>
-          <Button variant={activeScreen === 'settings_app' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('settings_app')}>
-            <Settings className="mr-3 h-5 w-5" />
-            Configurações do App
-          </Button>
-        </nav>
+        <div className="flex flex-1 flex-col justify-between overflow-y-auto">
+          <nav className="mt-8 flex flex-col gap-2">
+            {/* Itens Principais */}
+            <Button variant={activeScreen === 'dashboard' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('dashboard')}>
+              <Home className="mr-3 h-5 w-5" />
+              Dashboard
+            </Button>
+            <Button variant={activeScreen === 'registros' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('registros')}>
+              <ListChecks className="mr-3 h-5 w-5" />
+              Registros
+            </Button>
+            <Button variant={activeScreen === 'custos' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('custos')}>
+              <DollarSign className="mr-3 h-5 w-5" />
+              Custos
+            </Button>
+            <Button variant={activeScreen === 'abastecer' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('abastecer')}>
+              <Fuel className="mr-3 h-5 w-5" />
+              Abastecer
+            </Button>
+            <Button variant={activeScreen === 'manutencao' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('manutencao')}>
+              <Wrench className="mr-3 h-5 w-5" />
+              Manutenção
+            </Button>
+            <Button variant={activeScreen === 'metas' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('metas')}>
+              <Target className="mr-3 h-5 w-5" />
+              Metas
+            </Button>
+            <Button variant={activeScreen === 'relatorios' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('relatorios')}>
+              <BarChart2 className="mr-3 h-5 w-5" />
+              Relatórios
+            </Button>
+            <Button variant={activeScreen === 'dados' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('dados')}>
+              <Database className="mr-3 h-5 w-5" />
+              Dados
+            </Button>
+          </nav>
+
+          {/* Seção do Rodapé */}
+          <div>
+            <hr className="my-4 border-border" />
+            <nav className="flex flex-col gap-2">
+              <Button variant="ghost" className="justify-start text-base p-6" onClick={() => handleNavigation('empresas')}>
+                <Building className="mr-3 h-5 w-5" />
+                Gerenciar Empresas
+              </Button>
+              <Button variant="ghost" className="justify-start text-base p-6" onClick={() => handleNavigation('veiculos')}>
+                <Car className="mr-3 h-5 w-5" />
+                Gerenciar Veículos
+              </Button>
+              <Button variant="ghost" className="justify-start text-base p-6 text-destructive hover:text-destructive" onClick={() => handleNavigation('logout')}>
+                <LogOut className="mr-3 h-5 w-5" />
+                Reiniciar Sessão
+              </Button>
+            </nav>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
