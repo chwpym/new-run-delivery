@@ -19,6 +19,7 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MainMenu } from "@/components/main-menu";
 import { ReportsScreen } from "@/components/reports-screen";
+import { VehiclesScreen } from './vehicles-screen';
 
 
 // Função de cálculo de distância
@@ -247,6 +248,7 @@ export default function DeliveryTracker() {
         {activeScreen === 'reports' && (
           <ReportsScreen />
         )}
+         {activeScreen === 'veiculos' && <VehiclesScreen />}
       </main>
 
       {activeScreen === 'dashboard' && (
