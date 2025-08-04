@@ -38,6 +38,7 @@ export default function DeliveryTracker() {
 
   const FAKE_ORIGIN = { latitude: -21.669942, longitude: -49.746551, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
   const FAKE_DELIVERY_SPOT = { latitude: -21.6786, longitude: -49.7425, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
+  const FAKE_DELIVERY_SPOT_2 = { latitude: -21.70, longitude: -49.75, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null } as GeolocationCoordinates;
 
 
   // Load state from localStorage on mount
@@ -193,6 +194,15 @@ export default function DeliveryTracker() {
     processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 0 }, timestamp: Date.now() });
   };
 
+  const handleTestStop2 = () => {
+    console.log("TESTE: Simulando parada no SEGUNDO local de entrega...");
+    const fakePosition: GeolocationPosition = {
+      coords: { ...FAKE_DELIVERY_SPOT_2, speed: 0 } as GeolocationCoordinates,
+      timestamp: Date.now()
+    };
+    processNewPosition(fakePosition);
+  };
+
   if (!isMounted) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -232,6 +242,7 @@ export default function DeliveryTracker() {
         <div className="mt-4 flex gap-2 border-t-2 border-dashed border-gray-700 pt-4">
           <Button onClick={handleTestMovement} variant="secondary" size="sm">Teste: Mover</Button>
           <Button onClick={handleTestStop} variant="secondary" size="sm">Teste: Parar</Button>
+          <Button onClick={handleTestStop2} variant="secondary" size="sm">Teste: Parar (Local 2)</Button>
         </div>
       </main>
 
