@@ -36,6 +36,10 @@ export default function DeliveryTracker() {
   const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const FAKE_ORIGIN = { latitude: -21.669942, longitude: -49.746551, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
+  const FAKE_DELIVERY_SPOT = { latitude: -21.6786, longitude: -49.7425, accuracy: 20, speed: null, altitude: null, altitudeAccuracy: null, heading: null };
+
+
   // Load state from localStorage on mount
   useEffect(() => {
     try {
@@ -133,7 +137,7 @@ export default function DeliveryTracker() {
     navigator.geolocation.getCurrentPosition(
       (initialPosition) => {
         // Sucesso ao obter a posição inicial
-        setOrigin(initialPosition.coords);
+        setOrigin(FAKE_ORIGIN);
         setIsTracking(true);
 
         // Inicia o monitoramento contínuo
@@ -178,6 +182,16 @@ export default function DeliveryTracker() {
       </div>
     );
   };
+  
+  const handleTestMovement = () => {
+    console.log("TESTE: Simulando movimento...");
+    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 15 }, timestamp: Date.now() });
+  };
+  
+  const handleTestStop = () => {
+    console.log("TESTE: Simulando parada no local de entrega...");
+    processNewPosition({ coords: { ...FAKE_DELIVERY_SPOT, speed: 0 }, timestamp: Date.now() });
+  };
 
   if (!isMounted) {
     return (
@@ -215,6 +229,10 @@ export default function DeliveryTracker() {
         </div>
 
         <StatusDisplay />
+        <div className="mt-4 flex gap-2 border-t-2 border-dashed border-gray-700 pt-4">
+          <Button onClick={handleTestMovement} variant="secondary" size="sm">Teste: Mover</Button>
+          <Button onClick={handleTestStop} variant="secondary" size="sm">Teste: Parar</Button>
+        </div>
       </main>
 
       <footer className="p-4">
