@@ -5,13 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SettingsSheet } from "@/components/settings-sheet";
 import { Truck, Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle } from "lucide-react";
+import type { Settings, Status } from '@/types';
 
-type Status = "Paused" | "Tracking Active" | "GPS Error";
-export type Settings = {
-  autoCount: boolean;
-  stopDuration: number;
-  baseRadius: number;
-};
 
 export default function DeliveryTracker() {
   const [isMounted, setIsMounted] = useState(false);

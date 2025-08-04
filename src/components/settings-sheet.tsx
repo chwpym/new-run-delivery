@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon } from "lucide-react";
-import type { Settings } from '@/app/page';
+import type { Settings } from '@/types';
 
 type SettingsSheetProps = {
   settings: Settings;
@@ -49,7 +49,7 @@ export function SettingsSheet({ settings, setSettings }: SettingsSheetProps) {
             <Switch
               id="auto-count"
               checked={settings.autoCount}
-              onCheckedChange={(checked) => setSettings(s => ({ ...s, autoCount: checked }))}
+              onCheckedChange={(checked) => setSettings((s: Settings) => ({ ...s, autoCount: checked }))}
               aria-label="Ativar contagem automática"
             />
           </div>
@@ -60,7 +60,7 @@ export function SettingsSheet({ settings, setSettings }: SettingsSheetProps) {
               id="stop-duration"
               type="number"
               value={settings.stopDuration}
-              onChange={(e) => setSettings(s => ({ ...s, stopDuration: parseInt(e.target.value) || 0 }))}
+              onChange={(e) => setSettings((s: Settings) => ({ ...s, stopDuration: parseInt(e.target.value) || 0 }))}
               placeholder="Ex: 60"
               disabled={!settings.autoCount}
             />
@@ -75,7 +75,7 @@ export function SettingsSheet({ settings, setSettings }: SettingsSheetProps) {
               id="base-radius"
               type="number"
               value={settings.baseRadius}
-              onChange={(e) => setSettings(s => ({ ...s, baseRadius: parseInt(e.target.value) || 0 }))}
+              onChange={(e) => setSettings((s: Settings) => ({ ...s, baseRadius: parseInt(e.target.value) || 0 }))}
               placeholder="Ex: 200"
               disabled={!settings.autoCount}
             />
