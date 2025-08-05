@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListChecks, PlusCircle, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from 'date-fns';
+import { ListChecks, PlusCircle, Edit, Trash2, ArrowLeft, ArrowRight, Filter } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getAllEntries, saveDailyEntry, deleteDailyEntry, getAllCompanies, getAllVehicles } from '@/lib/db';
@@ -12,29 +12,45 @@ import type { DailyEntry } from '@/types/dailyEntry';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
 import { AddEntryModal } from './add-entry-modal';
+import { DatePicker } from './ui/date-picker';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface DailyEntriesScreenProps {
   deliveryCount: number;
 }
 
 export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
-  const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [allEntries, setAllEntries] = useState<DailyEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
   const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
+  
+  const [filters, setFilters] = useState<{
+    startDate: Date | null,
+    endDate: Date | null,
+    companyId: string,
+    vehicleId: string,
+  }>({
+    startDate: null,
+    endDate: null,
+    companyId: 'all',
+    vehicleId: 'all',
+  });
+  const [filteredEntries, setFilteredEntries] = useState<DailyEntry[]>([]);
+
 
   // Função para carregar/recarregar todos os dados
   const fetchData = async () => {
-    const [allEntries, allCompanies, allVehicles] = await Promise.all([
+    const [allEntriesData, allCompanies, allVehicles] = await Promise.all([
       getAllEntries(),
       getAllCompanies(),
       getAllVehicles()
     ]);
-    setEntries(allEntries.sort((a, b) => b.date.localeCompare(a.date))); // Ordena decrescente
+    setAllEntries(allEntriesData.sort((a, b) => b.date.localeCompare(a.date))); // Ordena decrescente
     setCompanies(allCompanies);
     setVehicles(allVehicles);
   };
@@ -42,6 +58,32 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Efeito para aplicar filtros
+  useEffect(() => {
+    let tempEntries = [...allEntries];
+
+    if (filters.startDate) {
+        // Zera a hora para comparar apenas a data
+        const startDate = new Date(filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        tempEntries = tempEntries.filter(entry => new Date(entry.date) >= startDate);
+    }
+    if (filters.endDate) {
+        // Zera a hora para comparar apenas a data
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        tempEntries = tempEntries.filter(entry => new Date(entry.date) <= endDate);
+    }
+    if (filters.companyId !== 'all') {
+        tempEntries = tempEntries.filter(entry => entry.companyId === filters.companyId);
+    }
+    if (filters.vehicleId !== 'all') {
+        tempEntries = tempEntries.filter(entry => entry.vehicleId === filters.vehicleId);
+    }
+    
+    setFilteredEntries(tempEntries);
+  }, [filters, allEntries]);
 
   const handleSaveEntry = async (entry: DailyEntry) => {
     await saveDailyEntry(entry);
@@ -60,15 +102,6 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     setIsModalOpen(true);
   };
 
-  const entriesByMonth = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    return entries.filter(entry => {
-      const entryDate = parseISO(entry.date);
-      return entryDate >= start && entryDate <= end;
-    });
-  }, [entries, currentMonth]);
-
   const getCompanyName = (companyId?: string) => companies.find(c => c.id === companyId)?.name || 'N/A';
   const getVehicleName = (vehicleId?: string) => vehicles.find(v => v.id === vehicleId)?.name || 'N/A';
 
@@ -86,22 +119,47 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
             </Button>
           </CardHeader>
           <CardContent>
-            {/* Seletor de Mês */}
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h3 className="text-lg font-semibold capitalize">
-                {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-              </h3>
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* Painel de Filtros */}
+             <Card className="p-4 mb-6 bg-card">
+                <div className="flex items-center mb-4">
+                    <Filter className="h-5 w-5 mr-2" />
+                    <h3 className="text-lg font-semibold">Filtros</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <Label>Data Inicial</Label>
+                        <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d || null}))} />
+                    </div>
+                    <div>
+                        <Label>Data Final</Label>
+                        <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d || null}))} />
+                    </div>
+                    <div>
+                        <Label>Empresa</Label>
+                        <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas as Empresas</SelectItem>
+                                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label>Veículo</Label>
+                        <Select value={filters.vehicleId} onValueChange={(id) => setFilters(prev => ({...prev, vehicleId: id}))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Veículos</SelectItem>
+                                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </Card>
             
             {/* Lista de Registros */}
             <div className="space-y-4">
-              {entriesByMonth.length > 0 ? entriesByMonth.map(entry => (
+              {filteredEntries.length > 0 ? filteredEntries.map(entry => (
                 <Card key={entry.id} className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
@@ -140,7 +198,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                     </div>
                   )}
                 </Card>
-              )) : <p className="text-center text-muted-foreground py-8">Nenhum registro para este mês.</p>}
+              )) : <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>}
             </div>
           </CardContent>
         </Card>
