@@ -56,6 +56,13 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   };
 
   useEffect(() => {
+    // Define o filtro padrão para "Mês Atual" na primeira carga
+    const now = new Date();
+    setFilters(prev => ({
+      ...prev,
+      startDate: startOfMonth(now),
+      endDate: endOfMonth(now),
+    }));
     fetchData();
   }, []);
 
@@ -64,15 +71,13 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     let tempEntries = [...allEntries];
 
     if (filters.startDate) {
-        // Zera a hora para comparar apenas a data
         const startDate = new Date(filters.startDate);
-        startDate.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0); // Início do dia
         tempEntries = tempEntries.filter(entry => new Date(entry.date) >= startDate);
     }
     if (filters.endDate) {
-        // Zera a hora para comparar apenas a data
         const endDate = new Date(filters.endDate);
-        endDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999); // Fim do dia
         tempEntries = tempEntries.filter(entry => new Date(entry.date) <= endDate);
     }
     if (filters.companyId !== 'all') {
@@ -102,6 +107,41 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     setIsModalOpen(true);
   };
 
+  const handlePeriodChange = (period: string) => {
+    const now = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date | null = new Date(); // Fim é sempre hoje, exceto para mês anterior
+  
+    switch (period) {
+      case 'this_month':
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+      case 'last_7_days':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        endDate = now;
+        break;
+      case 'last_15_days':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+        endDate = now;
+        break;
+      case 'last_month':
+        const lastMonthDate = subMonths(now, 1);
+        startDate = startOfMonth(lastMonthDate);
+        endDate = endOfMonth(lastMonthDate);
+        break;
+      default:
+        startDate = null;
+        endDate = null;
+    }
+  
+    setFilters(prev => ({
+      ...prev,
+      startDate: startDate,
+      endDate: endDate,
+    }));
+  };
+
   const getCompanyName = (companyId?: string) => companies.find(c => c.id === companyId)?.name || 'N/A';
   const getVehicleName = (vehicleId?: string) => vehicles.find(v => v.id === vehicleId)?.name || 'N/A';
 
@@ -125,7 +165,21 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                     <Filter className="h-5 w-5 mr-2" />
                     <h3 className="text-lg font-semibold">Filtros</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div>
+                        <Label>Período Rápido</Label>
+                        <Select onValueChange={(value) => handlePeriodChange(value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecionar período..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="this_month">Mês Atual</SelectItem>
+                                <SelectItem value="last_7_days">Últimos 7 dias</SelectItem>
+                                <SelectItem value="last_15_days">Últimos 15 dias</SelectItem>
+                                <SelectItem value="last_month">Mês Anterior</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div>
                         <Label>Data Inicial</Label>
                         <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d || null}))} />
