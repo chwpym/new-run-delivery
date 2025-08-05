@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListChecks, PlusCircle, Edit, Trash2, ArrowLeft, ArrowRight, Filter } from "lucide-react";
+import { ListChecks, PlusCircle, Edit, Trash2, SlidersHorizontal, Coffee, Briefcase } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,6 +15,7 @@ import { AddEntryModal } from './add-entry-modal';
 import { DatePicker } from './ui/date-picker';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Collapsible, CollapsibleContent } from './ui/collapsible';
 
 interface DailyEntriesScreenProps {
   deliveryCount: number;
@@ -28,6 +29,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
   const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   const [filters, setFilters] = useState<{
     startDate: Date | null,
@@ -142,6 +144,18 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     }));
   };
 
+  const calculateFuelCost = (entry: DailyEntry): number => {
+    if (!entry.vehicleId || !entry.kmDriven) return 0;
+    const vehicle = vehicles.find(v => v.id === entry.vehicleId);
+    // Supondo um preço de combustível fixo por enquanto.
+    // No futuro, isso pode vir de uma configuração.
+    const FUEL_PRICE = 5.80; 
+    if (!vehicle || vehicle.averageConsumption <= 0) return 0;
+    
+    const litersUsed = entry.kmDriven / vehicle.averageConsumption;
+    return litersUsed * FUEL_PRICE;
+  };
+
   const getCompanyName = (companyId?: string) => companies.find(c => c.id === companyId)?.name || 'N/A';
   const getVehicleName = (vehicleId?: string) => vehicles.find(v => v.id === vehicleId)?.name || 'N/A';
 
@@ -160,96 +174,112 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
           </CardHeader>
           <CardContent>
             {/* Painel de Filtros */}
-             <Card className="p-4 mb-6 bg-card">
-                <div className="flex items-center mb-4">
-                    <Filter className="h-5 w-5 mr-2" />
-                    <h3 className="text-lg font-semibold">Filtros</h3>
+            <Card className="p-4 mb-6 bg-card">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* Filtro Rápido (Sempre Visível) */}
+                <div className="flex-grow sm:flex-grow-0">
+                  <Label>Período</Label>
+                  <Select onValueChange={(value) => handlePeriodChange(value)} defaultValue="this_month">
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Selecionar período..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="this_month">Mês Atual</SelectItem>
+                      <SelectItem value="last_7_days">Últimos 7 dias</SelectItem>
+                      <SelectItem value="last_15_days">Últimos 15 dias</SelectItem>
+                      <SelectItem value="last_month">Mês Anterior</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                {/* Botão para mostrar/esconder filtros avançados */}
+                <Button variant="outline" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Filtros Avançados
+                </Button>
+              </div>
+
+              {/* Conteúdo Recolhível dos Filtros Avançados */}
+              <Collapsible open={showAdvancedFilters}>
+                <CollapsibleContent className="mt-4 pt-4 border-t">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Data Inicial */}
                     <div>
-                        <Label>Período Rápido</Label>
-                        <Select onValueChange={(value) => handlePeriodChange(value)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecionar período..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="this_month">Mês Atual</SelectItem>
-                                <SelectItem value="last_7_days">Últimos 7 dias</SelectItem>
-                                <SelectItem value="last_15_days">Últimos 15 dias</SelectItem>
-                                <SelectItem value="last_month">Mês Anterior</SelectItem>
-                            </SelectContent>
-                        </Select>
+                      <Label>Data Inicial</Label>
+                      <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d || null}))} />
                     </div>
+                    {/* Data Final */}
                     <div>
-                        <Label>Data Inicial</Label>
-                        <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d || null}))} />
+                      <Label>Data Final</Label>
+                      <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d || null}))} />
                     </div>
+                    {/* Empresa */}
                     <div>
-                        <Label>Data Final</Label>
-                        <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d || null}))} />
+                      <Label>Empresa</Label>
+                      <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as Empresas</SelectItem>
+                          {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    {/* Veículo */}
                     <div>
-                        <Label>Empresa</Label>
-                        <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas as Empresas</SelectItem>
-                                {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                      <Label>Veículo</Label>
+                      <Select value={filters.vehicleId} onValueChange={(id) => setFilters(prev => ({...prev, vehicleId: id}))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os Veículos</SelectItem>
+                          {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
-                     <div>
-                        <Label>Veículo</Label>
-                        <Select value={filters.vehicleId} onValueChange={(id) => setFilters(prev => ({...prev, vehicleId: id}))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos os Veículos</SelectItem>
-                                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
+
             
             {/* Lista de Registros */}
             <div className="space-y-4">
               {filteredEntries.length > 0 ? filteredEntries.map(entry => (
-                <Card key={entry.id} className="p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-lg">
-                        {format(parseISO(entry.date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
-                      </p>
-                      {entry.isDayOff ? (
-                        <p className="font-semibold text-destructive">DIA DE FOLGA</p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{getCompanyName(entry.companyId)} / {getVehicleName(entry.vehicleId)}</p>
-                      )}
+                <Card
+                  key={entry.id}
+                  className={`border-l-4 ${entry.isDayOff ? 'border-blue-500' : 'border-primary'}`}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div className="flex items-center gap-2">
+                      {entry.isDayOff ? <Coffee className="h-5 w-5 text-blue-500" /> : <Briefcase className="h-5 w-5 text-primary" />}
+                      <CardTitle className="text-lg">
+                        {format(parseISO(entry.date), "dd/MM/yyyy")} - {entry.isDayOff ? 'FOLGA' : getCompanyName(entry.companyId)}
+                      </CardTitle>
                     </div>
-                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={() => handleOpenModal(entry)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="destructive" size="icon" onClick={() => setEntryToDelete(entry)}><Trash2 className="h-4 w-4" /></Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenModal(entry)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => setEntryToDelete(entry)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
-                  </div>
+                  </CardHeader>
                   {!entry.isDayOff && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                      <div>
-                        <p className="font-semibold text-primary">R$ {entry.totalEarned?.toFixed(2) || '0.00'}</p>
-                        <p className="text-xs text-muted-foreground">Total Ganho</p>
+                    <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
+                      {/* Coluna da Esquerda */}
+                      <div className="space-y-1">
+                        <p><strong>Veículo:</strong> {getVehicleName(entry.vehicleId)}</p>
+                        <p><strong>Entregas:</strong> {entry.deliveriesCount || 0}</p>
+                        <p><strong>KM Rodados:</strong> {entry.kmDriven?.toFixed(1) || 0} km</p>
                       </div>
-                      <div>
-                        <p>{entry.deliveriesCount || 0}</p>
-                        <p className="text-xs text-muted-foreground">Entregas</p>
+                      {/* Coluna da Direita */}
+                      <div className="space-y-1 text-right">
+                        <p><strong>Diária:</strong> R$ {entry.dailyRate?.toFixed(2) || '0.00'}</p>
+                        <p><strong>Total Entregas:</strong> R$ {entry.totalFromDeliveries?.toFixed(2) || '0.00'}</p>
+                        <p><strong>Gorjetas:</strong> R$ {entry.tips?.toFixed(2) || '0.00'}</p>
                       </div>
-                      <div>
-                        <p>{entry.kmDriven?.toFixed(1) || 0} km</p>
-                        <p className="text-xs text-muted-foreground">KM Rodados</p>
+                      {/* Linha Final de Resumo */}
+                      <div className="col-span-2 mt-2 pt-2 border-t text-base font-bold flex justify-between">
+                        <span className="text-destructive">Custo Comb.: R$ {calculateFuelCost(entry).toFixed(2)}</span>
+                        <span className="text-primary">Total Ganho Dia: R$ {entry.totalEarned?.toFixed(2) || '0.00'}</span>
                       </div>
-                       <div>
-                        <p>R$ {entry.tips?.toFixed(2) || '0.00'}</p>
-                        <p className="text-xs text-muted-foreground">Gorjetas</p>
-                      </div>
-                    </div>
+                    </CardContent>
                   )}
                 </Card>
               )) : <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>}
@@ -277,3 +307,5 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     </>
   );
 }
+
+    
