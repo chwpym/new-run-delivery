@@ -21,6 +21,7 @@ import { MainMenu } from "@/components/main-menu";
 import { ReportsScreen } from "@/components/reports-screen";
 import { VehiclesScreen } from './vehicles-screen';
 import { CompaniesScreen } from './companies-screen';
+import { DataScreen } from './data-screen';
 
 
 // Função de cálculo de distância
@@ -246,11 +247,10 @@ export default function DeliveryTracker() {
           </div>
         )}
 
-        {activeScreen === 'reports' && (
-          <ReportsScreen />
-        )}
-         {activeScreen === 'veiculos' && <VehiclesScreen />}
-         {activeScreen === 'empresas' && <CompaniesScreen />}
+        {activeScreen === 'reports' && <ReportsScreen />}
+        {activeScreen === 'veiculos' && <VehiclesScreen />}
+        {activeScreen === 'empresas' && <CompaniesScreen />}
+        {activeScreen === 'dados' && <DataScreen />}
       </main>
 
       {activeScreen === 'dashboard' && (

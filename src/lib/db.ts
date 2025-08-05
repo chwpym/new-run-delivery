@@ -110,3 +110,53 @@ export async function deleteVehicle(id: string) {
   const db = await getDb();
   return db.delete('vehicles', id);
 }
+
+// Funções de Backup e Restauração
+
+export async function exportDbToJson() {
+  const db = await getDb();
+  const companiesData = await db.getAll('companies');
+  const vehiclesData = await db.getAll('vehicles');
+  // Futuramente, adicionaremos outras tabelas aqui
+
+  const dataToExport = {
+    companies: companiesData,
+    vehicles: vehiclesData,
+  };
+
+  // Cria um "blob" (Binary Large Object) com os dados em formato JSON
+  const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  // Cria um link temporário e simula um clique para iniciar o download
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `run-delivery-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+
+  // Libera a URL do objeto da memória
+  URL.revokeObjectURL(url);
+}
+
+export async function importDbFromJson(jsonData: string) {
+  const db = await getDb();
+  const data = JSON.parse(jsonData);
+
+  // Inicia uma transação para apagar os dados antigos e inserir os novos
+  const tx = db.transaction(['companies', 'vehicles'], 'readwrite');
+
+  // Limpa as tabelas atuais
+  await tx.objectStore('companies').clear();
+  await tx.objectStore('vehicles').clear();
+
+  // Insere os novos dados do backup
+  for (const company of data.companies) {
+    await tx.objectStore('companies').put(company);
+  }
+  for (const vehicle of data.vehicles) {
+    await tx.objectStore('vehicles').put(vehicle);
+  }
+
+  // Espera a transação ser completada
+  await tx.done;
+}
