@@ -9,14 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-// Definindo o tipo para um Veículo
-export type Vehicle = {
-  id: string;
-  name: string;
-  plate?: string;
-  averageConsumption: number; // km/L
-};
+import type { Vehicle } from '@/types/vehicle';
 
 export function VehiclesScreen() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([
