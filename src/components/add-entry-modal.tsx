@@ -40,8 +40,12 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   // Valores calculados
   const totalFromDeliveries = useMemo(() => {
+    // Se a empresa for de pagamento fixo, o valor das entregas é 0, pois já está no "salário"
+    if (selectedCompany?.paymentType === 'fixed') {
+      return 0;
+    }
     return (parseFloat(deliveriesCount) || 0) * (parseFloat(deliveryFee) || 0);
-  }, [deliveriesCount, deliveryFee]);
+  }, [deliveriesCount, deliveryFee, selectedCompany]);
 
   const totalEarned = useMemo(() => {
     const rate = isDayOff ? 0 : parseFloat(dailyRate) || 0;
@@ -101,9 +105,12 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         if (company.paymentType === 'daily') {
           setDailyRate(String(company.dailyRate || 0));
           setDeliveryFee(String(company.deliveryFee || 0));
+          setDeliveriesCount(String(deliveryCount || 0)); // Reseta a contagem
         } else if (company.paymentType === 'fixed') {
+          // Para pagamento fixo, a "diária" é o valor mensal e não há taxa ou contagem por entrega
           setDailyRate(String(company.fixedValue || 0));
           setDeliveryFee('0');
+          setDeliveriesCount('0');
         }
       }
     } else {
@@ -113,7 +120,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         setDeliveryFee('0');
       }
     }
-  }, [companyId, companies, entryToEdit]);
+  }, [companyId, companies, entryToEdit, deliveryCount]);
 
 
   const handleSubmit = () => {
@@ -187,11 +194,11 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="deliveriesCount">Nº Entregas</Label>
-                    <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} />
+                    <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dailyRate">Diária (R$)</Label>
-                    <Input id="dailyRate" type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
+                   <div className="space-y-2">
+                    <Label htmlFor="totalFromDeliveries">Total Entregas (R$)</Label>
+                    <Input id="totalFromDeliveries" type="text" value={totalFromDeliveries.toFixed(2)} readOnly disabled className="bg-muted"/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="deliveryFee">Taxa/Entrega (R$)</Label>
@@ -202,9 +209,19 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                     <Input id="tips" type="number" value={tips} onChange={e => setTips(e.target.value)} />
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <p>Total Entregas: <span className='font-bold'>R$ {totalFromDeliveries.toFixed(2)}</span></p>
-                    <p className='text-right'>Ganho Total do Dia: <span className='font-bold text-lg text-primary'>R$ {totalEarned.toFixed(2)}</span></p>
+                <div className='mt-4 p-2 border rounded-md'>
+                  <h4 className="text-md font-medium mb-2">Resumo Financeiro</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-1">
+                          <p>Diária/Fixo: <span className='font-bold'>R$ {parseFloat(dailyRate).toFixed(2)}</span></p>
+                          <p>Entregas: <span className='font-bold'>R$ {totalFromDeliveries.toFixed(2)}</span></p>
+                          <p>Gorjetas: <span className='font-bold'>R$ {parseFloat(tips || '0').toFixed(2)}</span></p>
+                      </div>
+                      <div className="flex flex-col items-end justify-center">
+                          <p className='text-right text-lg'>Total do Dia:</p>
+                          <p className='font-bold text-2xl text-primary'>R$ {totalEarned.toFixed(2)}</p>
+                      </div>
+                  </div>
                 </div>
               </div>
             )}
