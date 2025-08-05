@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,36 +10,49 @@ import type { Vehicle } from './vehicles-screen';
 interface AddVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddVehicle: (vehicle: Omit<Vehicle, 'id'>) => void;
+  onSave: (vehicleData: Omit<Vehicle, 'id'>, id?: string) => void;
+  vehicleToEdit?: Vehicle | null;
 }
 
-export function AddVehicleModal({ isOpen, onClose, onAddVehicle }: AddVehicleModalProps) {
+export function AddVehicleModal({ isOpen, onClose, onSave, vehicleToEdit }: AddVehicleModalProps) {
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
   const [consumption, setConsumption] = useState('');
+
+  useEffect(() => {
+    if (vehicleToEdit) {
+      setName(vehicleToEdit.name);
+      setPlate(vehicleToEdit.plate || '');
+      setConsumption(String(vehicleToEdit.averageConsumption));
+    } else {
+      // Limpa os campos se for para adicionar um novo
+      setName('');
+      setPlate('');
+      setConsumption('');
+    }
+  }, [vehicleToEdit, isOpen]);
 
   const handleSubmit = () => {
     if (!name || !consumption) {
       alert("Nome e Consumo são obrigatórios.");
       return;
     }
-    onAddVehicle({
-      name,
-      plate,
-      averageConsumption: parseFloat(consumption),
-    });
-    onClose(); // Fecha o modal
-    // Limpa os campos
-    setName('');
-    setPlate('');
-    setConsumption('');
+    onSave(
+      {
+        name,
+        plate,
+        averageConsumption: parseFloat(consumption),
+      },
+      vehicleToEdit?.id // Passa o ID se estiver editando
+    );
+    onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Veículo</DialogTitle>
+          <DialogTitle>{vehicleToEdit ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -59,7 +72,7 @@ export function AddVehicleModal({ isOpen, onClose, onAddVehicle }: AddVehicleMod
           <DialogClose asChild>
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>Adicionar</Button>
+          <Button onClick={handleSubmit}>{vehicleToEdit ? 'Salvar Alterações' : 'Adicionar'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
