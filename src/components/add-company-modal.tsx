@@ -23,14 +23,15 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
   const [deliveryFee, setDeliveryFee] = useState('');
 
   useEffect(() => {
-    if (companyToEdit) {
+    if (isOpen && companyToEdit) {
+      // Modo de Edição: Preenche os campos com os dados existentes
       setName(companyToEdit.name);
-      setPaymentType(companyToEdit.paymentType);
-      setDailyRate(String(companyToEdit.dailyRate || ''));
-      setFixedValue(String(companyToEdit.fixedValue || ''));
-      setDeliveryFee(String(companyToEdit.deliveryFee));
-    } else {
-      // Limpa os campos para um novo cadastro
+      setPaymentType(companyToEdit.paymentType || 'daily'); // Garante um valor padrão
+      setDailyRate(String(companyToEdit.dailyRate || '')); // Converte para string, ou usa '' se for nulo/undefined
+      setFixedValue(String(companyToEdit.fixedValue || '')); // Converte para string, ou usa '' se for nulo/undefined
+      setDeliveryFee(String(companyToEdit.deliveryFee || '')); // Converte para string, ou usa '' se for nulo/undefined
+    } else if (isOpen) {
+      // Modo de Adição: Limpa todos os campos
       setName('');
       setPaymentType('daily');
       setDailyRate('');
@@ -38,6 +39,7 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
       setDeliveryFee('');
     }
   }, [companyToEdit, isOpen]);
+
 
   const handleSubmit = () => {
     if (!name || !deliveryFee) {
