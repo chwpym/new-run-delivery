@@ -67,3 +67,29 @@ export const getDb = () => {
     },
   });
 };
+
+// Funções CRUD para a tabela 'companies'
+
+export async function getAllCompanies() {
+  const db = await getDb();
+  return db.getAll('companies');
+}
+
+export async function saveCompany(company: Company) {
+  const db = await getDb();
+  return db.put('companies', company);
+}
+
+export async function deleteCompany(id: string) {
+  const db = await getDb();
+  return db.delete('companies', id);
+}
+
+export async function setCompanyBaseLocation(id: string, baseLocation: { latitude: number; longitude: number; }) {
+  const db = await getDb();
+  const company = await db.get('companies', id);
+  if (company) {
+    company.baseLocation = baseLocation;
+    return db.put('companies', company);
+  }
+}

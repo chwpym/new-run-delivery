@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building, PlusCircle, MapPin, Edit, Trash2 } from "lucide-react";
 import { AddCompanyModal } from './add-company-modal';
 import type { Company } from '@/types/company';
-// Importe o AlertDialog para a exclusão
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { getAllCompanies, saveCompany, deleteCompany, setCompanyBaseLocation } from '@/lib/db';
 
 export function CompaniesScreen() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -15,30 +15,43 @@ export function CompaniesScreen() {
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
 
-  const handleSaveCompany = (companyData: Pick<Company, 'name'>, id?: string) => {
-    if (id) { // Editando
-      setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...companyData } : c));
-    } else { // Adicionando
-      const newCompany: Company = { id: new Date().toISOString(), ...companyData };
-      setCompanies(prev => [...prev, newCompany]);
-    }
+  // Função para carregar/recarregar os dados do banco
+  const fetchCompanies = async () => {
+    const allCompanies = await getAllCompanies();
+    setCompanies(allCompanies);
   };
 
-  const handleSetBaseLocation = (companyId: string) => {
+  // Carrega os dados quando o componente é montado pela primeira vez
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const handleSaveCompany = async (companyData: Pick<Company, 'name'>, id?: string) => {
+    const companyToSave: Company = id
+      ? { ...companies.find(c => c.id === id)!, ...companyData, baseLocation: companies.find(c => c.id === id)?.baseLocation } // Editando, mantendo a baseLocation
+      : { id: new Date().toISOString(), ...companyData }; // Adicionando
+
+    await saveCompany(companyToSave);
+    fetchCompanies(); // Recarrega a lista da tela
+  };
+
+  const handleSetBaseLocation = async (companyId: string) => {
     if (!navigator.geolocation) return alert("GPS não suportado.");
-    navigator.geolocation.getCurrentPosition(position => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
       const { latitude, longitude } = position.coords;
-      setCompanies(prev => prev.map(c => c.id === companyId ? { ...c, baseLocation: { latitude, longitude } } : c));
+      await setCompanyBaseLocation(companyId, { latitude, longitude });
+      fetchCompanies(); // Recarrega a lista da tela
       alert(`Base definida com sucesso!`);
     }, (error) => {
       alert(`Erro ao obter localização: ${error.message}`);
     });
   };
 
-  const handleDeleteCompany = () => {
+  const handleDeleteCompany = async () => {
     if (!companyToDelete) return;
-    setCompanies(prev => prev.filter(c => c.id !== companyToDelete.id));
+    await deleteCompany(companyToDelete.id);
     setCompanyToDelete(null);
+    fetchCompanies(); // Recarrega a lista da tela
   };
 
   return (
@@ -74,7 +87,12 @@ export function CompaniesScreen() {
         </Card>
       </div>
 
-      <AddCompanyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveCompany} companyToEdit={companyToEdit} />
+      <AddCompanyModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveCompany}
+        companyToEdit={companyToEdit}
+      />
 
       <AlertDialog open={!!companyToDelete} onOpenChange={() => setCompanyToDelete(null)}>
         <AlertDialogContent>
