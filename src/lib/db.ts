@@ -93,3 +93,20 @@ export async function setCompanyBaseLocation(id: string, baseLocation: { latitud
     return db.put('companies', company);
   }
 }
+
+// Funções CRUD para a tabela 'vehicles'
+
+export async function getAllVehicles() {
+  const db = await getDb();
+  return db.getAll('vehicles');
+}
+
+export async function saveVehicle(vehicle: Vehicle) {
+  const db = await getDb();
+  return db.put('vehicles', vehicle);
+}
+
+export async function deleteVehicle(id: string) {
+  const db = await getDb();
+  return db.delete('vehicles', id);
+}

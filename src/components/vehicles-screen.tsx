@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Car, PlusCircle, Edit, Trash2 } from "lucide-react";
@@ -10,13 +10,22 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Vehicle } from '@/types/vehicle';
+import { getAllVehicles, saveVehicle, deleteVehicle } from '@/lib/db';
 
 export function VehiclesScreen() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([
-    // Dados de exemplo
-    { id: '1', name: 'Biz', plate: 'DHI0F06', averageConsumption: 35.57 },
-    { id: '2', name: 'Veículo Principal', averageConsumption: 10 },
-  ]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+
+  // Função para carregar/recarregar os dados do banco
+  const fetchVehicles = async () => {
+    const allVehicles = await getAllVehicles();
+    setVehicles(allVehicles);
+  };
+
+  // Carrega os dados quando o componente é montado pela primeira vez
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [vehicleToEdit, setVehicleToEdit] = useState<Vehicle | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
@@ -26,19 +35,20 @@ export function VehiclesScreen() {
     setIsModalOpen(true);
   };
 
-  const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id'>, id?: string) => {
-    if (id) { // Editando
-      setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...vehicleData } : v));
-    } else { // Adicionando
-      const newVehicle: Vehicle = { id: new Date().toISOString(), ...vehicleData };
-      setVehicles(prev => [...prev, newVehicle]);
-    }
+  const handleSaveVehicle = async (vehicleData: Omit<Vehicle, 'id'>, id?: string) => {
+    const vehicleToSave: Vehicle = id
+      ? { ...vehicles.find(v => v.id === id)!, ...vehicleData } // Editando
+      : { id: new Date().toISOString(), ...vehicleData }; // Adicionando
+
+    await saveVehicle(vehicleToSave);
+    fetchVehicles(); // Recarrega a lista da tela
   };
 
-  const handleDeleteVehicle = () => {
+  const handleDeleteVehicle = async () => {
     if (!vehicleToDelete) return;
-    setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
-    setVehicleToDelete(null); // Fecha o diálogo
+    await deleteVehicle(vehicleToDelete.id);
+    setVehicleToDelete(null);
+    fetchVehicles(); // Recarrega a lista da tela
   };
 
   const handleOpenAddModal = () => {
