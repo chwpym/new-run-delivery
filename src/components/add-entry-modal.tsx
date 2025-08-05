@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, parseISO } from 'date-fns';
 import type { DailyEntry } from '@/types/dailyEntry';
 import type { Company } from '@/types/company';
@@ -40,11 +39,13 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   // Valores calculados
   const totalFromDeliveries = useMemo(() => {
+    if (isDayOff) return 0;
     return (parseFloat(deliveriesCount) || 0) * (parseFloat(deliveryFee) || 0);
-  }, [deliveriesCount, deliveryFee]);
+  }, [deliveriesCount, deliveryFee, isDayOff]);
 
   const totalEarned = useMemo(() => {
-    const rate = isDayOff ? 0 : parseFloat(dailyRate) || 0;
+    if (isDayOff) return 0;
+    const rate = parseFloat(dailyRate) || 0;
     const tipValue = parseFloat(tips) || 0;
     return rate + totalFromDeliveries + tipValue;
   }, [dailyRate, totalFromDeliveries, tips, isDayOff]);
@@ -90,33 +91,37 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
       }
     }
   }, [entryToEdit, isOpen, deliveryCount, companies, vehicles]);
+  
+  // Efeito para limpar os dados quando "Folga" é marcada
+  useEffect(() => {
+    if (isDayOff) {
+      setCompanyId(undefined);
+      setVehicleId(undefined);
+      setDeliveriesCount('0');
+      setDailyRate('0');
+      setDeliveryFee('0');
+      setTips('0');
+      setSelectedCompany(null);
+    }
+  }, [isDayOff]);
 
   // Atualiza a diária e taxa de entrega ao mudar de empresa
   useEffect(() => {
     const company = companies.find(c => c.id === companyId);
     setSelectedCompany(company || null);
   
-    if (company) {
-      // Preenche os campos com base na empresa, mas apenas se for um novo registro
-      if (!entryToEdit) {
-        if (company.paymentType === 'fixed') {
-          // Se for fixo, APENAS a diária é zerada. A taxa por entrega vem da empresa.
-          setDailyRate('0');
-          setDeliveryFee(String(company.deliveryFee || 0));
-        } else {
-          // Se for diária, preenche ambos com os valores da empresa.
-          setDailyRate(String(company.dailyRate || 0));
-          setDeliveryFee(String(company.deliveryFee || 0));
-        }
-        setDeliveriesCount(String(deliveryCount || 0)); // Reseta a contagem
-      }
-    } else {
-      if(!entryToEdit) {
+    if (company && !entryToEdit) { // Só preenche automaticamente para novos registros
+      if (company.paymentType === 'fixed') {
+        // Se for fixo, APENAS a diária é zerada. A taxa por entrega vem da empresa.
         setDailyRate('0');
-        setDeliveryFee('0');
+        setDeliveryFee(String(company.deliveryFee || 0));
+      } else {
+        // Se for diária, preenche ambos com os valores da empresa.
+        setDailyRate(String(company.dailyRate || 0));
+        setDeliveryFee(String(company.deliveryFee || 0));
       }
     }
-  }, [companyId, companies, entryToEdit, deliveryCount]);
+  }, [companyId, companies, entryToEdit]);
 
 
   const handleSubmit = () => {
@@ -129,7 +134,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
       deliveriesCount: isDayOff ? 0 : parseInt(deliveriesCount, 10) || 0,
       dailyRate: isDayOff ? 0 : parseFloat(dailyRate) || 0,
       deliveryFee: isDayOff ? 0 : parseFloat(deliveryFee) || 0,
-      tips: parseFloat(tips) || 0,
+      tips: isDayOff ? 0 : parseFloat(tips) || 0,
       startKm: parseFloat(startKm) || 0,
       endKm: parseFloat(endKm) || 0,
       totalFromDeliveries,
@@ -142,7 +147,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl grid grid-rows-[auto_1fr_auto] h-full max-h-[95vh]">
+      <DialogContent className="sm:max-w-2xl grid grid-rows-[auto_1fr_auto] h-screen max-h-[95vh]">
         <DialogHeader>
           <DialogTitle>{entryToEdit ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
           <DialogDescription>
@@ -164,63 +169,63 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             </div>
 
             {/* Seletor de Empresa e Veículo */}
-            {!isDayOff && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company">Empresa</Label>
-                  <Select value={companyId} onValueChange={setCompanyId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vehicle">Veículo</Label>
-                  <Select value={vehicleId} onValueChange={setVehicleId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company">Empresa</Label>
+                <Select value={companyId} onValueChange={setCompanyId} disabled={isDayOff}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="vehicle">Veículo</Label>
+                <Select value={vehicleId} onValueChange={setVehicleId} disabled={isDayOff}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
             
             {/* Ganhos */}
-            {!isDayOff && (
-              <div className='p-4 border rounded-md'>
-                <h3 className="text-lg font-medium mb-2">Ganhos do Dia</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="deliveriesCount">Nº Entregas</Label>
-                    <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="totalFromDeliveries">Total Entregas (R$)</Label>
-                    <Input id="totalFromDeliveries" type="text" value={totalFromDeliveries.toFixed(2)} readOnly disabled className="bg-muted"/>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="deliveryFee">Taxa/Entrega (R$)</Label>
-                    <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tips">Gorjetas (R$)</Label>
-                    <Input id="tips" type="number" value={tips} onChange={e => setTips(e.target.value)} />
-                  </div>
+            <div className='p-4 border rounded-md'>
+              <h3 className="text-lg font-medium mb-2">Ganhos do Dia</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deliveriesCount">Nº Entregas</Label>
+                  <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} disabled={isDayOff} />
                 </div>
-                <div className='mt-4 p-2 border rounded-md'>
-                  <h4 className="text-md font-medium mb-2">Resumo Financeiro</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-1">
-                          <p>Diária/Fixo: <span className='font-bold'>R$ {parseFloat(dailyRate).toFixed(2)}</span></p>
-                          <p>Entregas: <span className='font-bold'>R$ {totalFromDeliveries.toFixed(2)}</span></p>
-                          <p>Gorjetas: <span className='font-bold'>R$ {parseFloat(tips || '0').toFixed(2)}</span></p>
-                      </div>
-                      <div className="flex flex-col items-end justify-center">
-                          <p className='text-right text-lg'>Total do Dia:</p>
-                          <p className='font-bold text-2xl text-primary'>R$ {totalEarned.toFixed(2)}</p>
-                      </div>
-                  </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="totalFromDeliveries">Total Entregas (R$)</Label>
+                  <Input id="totalFromDeliveries" type="text" value={totalFromDeliveries.toFixed(2)} readOnly disabled className="bg-muted"/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dailyRate">Diária (R$)</Label>
+                  <Input id="dailyRate" type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} disabled={isDayOff || selectedCompany?.paymentType === 'fixed'}/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryFee">Taxa/Entrega (R$)</Label>
+                  <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} disabled={isDayOff} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tips">Gorjetas (R$)</Label>
+                  <Input id="tips" type="number" value={tips} onChange={e => setTips(e.target.value)} disabled={isDayOff} />
                 </div>
               </div>
-            )}
+              <div className='mt-4 p-2 border rounded-md'>
+                <h4 className="text-md font-medium mb-2">Resumo Financeiro</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1">
+                        <p>Diária/Fixo: <span className='font-bold'>R$ {parseFloat(dailyRate).toFixed(2)}</span></p>
+                        <p>Entregas: <span className='font-bold'>R$ {totalFromDeliveries.toFixed(2)}</span></p>
+                        <p>Gorjetas: <span className='font-bold'>R$ {parseFloat(tips || '0').toFixed(2)}</span></p>
+                    </div>
+                    <div className="flex flex-col items-end justify-center">
+                        <p className='text-right text-lg'>Total do Dia:</p>
+                        <p className='font-bold text-2xl text-primary'>R$ {totalEarned.toFixed(2)}</p>
+                    </div>
+                </div>
+              </div>
+            </div>
 
             {/* Quilometragem */}
              <div className='p-4 border rounded-md'>
