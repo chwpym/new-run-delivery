@@ -73,14 +73,12 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     let tempEntries = [...allEntries];
 
     if (filters.startDate) {
-        const startDate = new Date(filters.startDate);
-        startDate.setHours(0, 0, 0, 0); // Início do dia
-        tempEntries = tempEntries.filter(entry => new Date(entry.date) >= startDate);
+      const startStr = format(filters.startDate, 'yyyy-MM-dd');
+      tempEntries = tempEntries.filter(entry => entry.date >= startStr);
     }
     if (filters.endDate) {
-        const endDate = new Date(filters.endDate);
-        endDate.setHours(23, 59, 59, 999); // Fim do dia
-        tempEntries = tempEntries.filter(entry => new Date(entry.date) <= endDate);
+      const endStr = format(filters.endDate, 'yyyy-MM-dd');
+      tempEntries = tempEntries.filter(entry => entry.date <= endStr);
     }
     if (filters.companyId !== 'all') {
         tempEntries = tempEntries.filter(entry => entry.companyId === filters.companyId);
