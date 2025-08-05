@@ -1,3 +1,4 @@
+// src/components/main-menu.tsx
 "use client";
 
 import { useState } from 'react';
