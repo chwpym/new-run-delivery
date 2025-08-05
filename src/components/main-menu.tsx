@@ -73,7 +73,7 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
           <div>
             <hr className="my-4 border-border" />
             <nav className="flex flex-col gap-2">
-              <Button variant="ghost" className="justify-start text-base p-6" onClick={() => handleNavigation('empresas')}>
+              <Button variant={activeScreen === 'empresas' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('empresas')}>
                 <Building className="mr-3 h-5 w-5" />
                 Gerenciar Empresas
               </Button>
