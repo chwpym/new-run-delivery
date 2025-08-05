@@ -40,12 +40,8 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   // Valores calculados
   const totalFromDeliveries = useMemo(() => {
-    // Se a empresa for de pagamento fixo, o valor das entregas é 0, pois já está no "salário"
-    if (selectedCompany?.paymentType === 'fixed') {
-      return 0;
-    }
     return (parseFloat(deliveriesCount) || 0) * (parseFloat(deliveryFee) || 0);
-  }, [deliveriesCount, deliveryFee, selectedCompany]);
+  }, [deliveriesCount, deliveryFee]);
 
   const totalEarned = useMemo(() => {
     const rate = isDayOff ? 0 : parseFloat(dailyRate) || 0;
@@ -96,25 +92,25 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
   }, [entryToEdit, isOpen, deliveryCount, companies, vehicles]);
 
   // Atualiza a diária e taxa de entrega ao mudar de empresa
-   useEffect(() => {
+  useEffect(() => {
     const company = companies.find(c => c.id === companyId);
+    setSelectedCompany(company || null);
+  
     if (company) {
-      setSelectedCompany(company);
       // Preenche os campos com base na empresa, mas apenas se for um novo registro
       if (!entryToEdit) {
-        if (company.paymentType === 'daily') {
+        if (company.paymentType === 'fixed') {
+          // Se for fixo, APENAS a diária é zerada. A taxa por entrega vem da empresa.
+          setDailyRate('0');
+          setDeliveryFee(String(company.deliveryFee || 0));
+        } else {
+          // Se for diária, preenche ambos com os valores da empresa.
           setDailyRate(String(company.dailyRate || 0));
           setDeliveryFee(String(company.deliveryFee || 0));
-          setDeliveriesCount(String(deliveryCount || 0)); // Reseta a contagem
-        } else if (company.paymentType === 'fixed') {
-          // Para pagamento fixo, a "diária" é o valor mensal e não há taxa ou contagem por entrega
-          setDailyRate(String(company.fixedValue || 0));
-          setDeliveryFee('0');
-          setDeliveriesCount('0');
         }
+        setDeliveriesCount(String(deliveryCount || 0)); // Reseta a contagem
       }
     } else {
-      setSelectedCompany(null);
       if(!entryToEdit) {
         setDailyRate('0');
         setDeliveryFee('0');
@@ -194,7 +190,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="deliveriesCount">Nº Entregas</Label>
-                    <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
+                    <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} />
                   </div>
                    <div className="space-y-2">
                     <Label htmlFor="totalFromDeliveries">Total Entregas (R$)</Label>
@@ -202,7 +198,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="deliveryFee">Taxa/Entrega (R$)</Label>
-                    <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
+                    <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tips">Gorjetas (R$)</Label>
