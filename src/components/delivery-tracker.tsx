@@ -22,10 +22,13 @@ import { ReportsScreen } from "@/components/reports-screen";
 import { VehiclesScreen } from './vehicles-screen';
 import { CompaniesScreen } from './companies-screen';
 import { DataScreen } from './data-screen';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getAllCompanies } from '@/lib/db';
+import type { Company } from '@/types/company';
 
 
 // Função de cálculo de distância
-function getDistanceInMeters(coord1: GeolocationCoordinates, coord2: GeolocationCoordinates) {
+function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coord2: {latitude: number, longitude: number}) {
   const R = 6371e3; // Raio da Terra em metros
   const lat1 = coord1.latitude * Math.PI / 180;
   const lat2 = coord2.latitude * Math.PI / 180;
@@ -51,13 +54,15 @@ export default function DeliveryTracker() {
   const watchIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
-  const [origin, setOrigin] = useState<GeolocationCoordinates | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [activeScreen, setActiveScreen] = useState('dashboard');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
+  const [origin, setOrigin] = useState<Company['baseLocation'] | null>(null);
 
 
-  // --- EFEITOS (localStorage) ---
+  // --- EFEITOS (localStorage & Data Loading) ---
   useEffect(() => {
     try {
       const savedCount = localStorage.getItem('runDeliveryCount');
@@ -68,7 +73,24 @@ export default function DeliveryTracker() {
       console.error("Failed to parse from localStorage", error);
     }
     setIsMounted(true);
+
+    const loadData = async () => {
+      const allCompanies = await getAllCompanies();
+      setCompanies(allCompanies);
+      if (allCompanies.length > 0) {
+        const lastCompanyId = localStorage.getItem('runDeliveryLastCompany');
+        const companyExists = allCompanies.some(c => c.id === lastCompanyId);
+        setActiveCompanyId(companyExists ? lastCompanyId : allCompanies[0].id);
+      }
+    };
+    loadData();
   }, []);
+  
+  useEffect(() => {
+    if(activeCompanyId) {
+      localStorage.setItem('runDeliveryLastCompany', activeCompanyId);
+    }
+  }, [activeCompanyId]);
 
   useEffect(() => {
     if (isMounted) localStorage.setItem('runDeliveryCount', JSON.stringify(count));
@@ -113,12 +135,14 @@ export default function DeliveryTracker() {
   
   const confirmReset = () => {
     setCount(0);
+    setLastDeliveryLocation(null);
     setIsResetDialogOpen(false);
   };
 
   const processNewPosition = (position: GeolocationPosition) => {
     const { coords } = position;
     const speed = coords.speed === null ? 0 : coords.speed * 3.6; // km/h
+  
     if (speed > 2) {
       if (stopTimerRef.current) {
         clearTimeout(stopTimerRef.current);
@@ -126,15 +150,30 @@ export default function DeliveryTracker() {
       }
       return;
     }
+  
     if (stopTimerRef.current) return;
+  
     stopTimerRef.current = setTimeout(() => {
-      if (!settings.autoCount || !origin) return;
+      // Verifica se a contagem automática está ligada e se temos uma origem definida
+      if (!settings.autoCount || !origin) {
+        stopTimerRef.current = null; // Limpa o timer se não for contar
+        return;
+      }
+  
       const distanceFromOrigin = getDistanceInMeters(coords, origin);
-      if (distanceFromOrigin < settings.baseRadius) return;
+      if (distanceFromOrigin < settings.baseRadius) {
+        stopTimerRef.current = null; // Limpa o timer se estiver na base
+        return;
+      }
+  
       if (lastDeliveryLocation) {
         const distanceFromLast = getDistanceInMeters(coords, lastDeliveryLocation);
-        if (distanceFromLast < 150) return;
+        if (distanceFromLast < 150) {
+          stopTimerRef.current = null; // Limpa o timer se for parada dupla
+          return;
+        }
       }
+  
       handleIncrement();
       setLastDeliveryLocation(coords);
       stopTimerRef.current = null;
@@ -142,12 +181,14 @@ export default function DeliveryTracker() {
   };
 
   const handleToggleTracking = () => {
+    // Lógica para PARAR o rastreamento
     if (isTracking) {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
       setIsTracking(false);
+      setOrigin(null); // Limpa a origem ao parar
       releaseWakeLock();
       if (stopTimerRef.current) {
         clearTimeout(stopTimerRef.current);
@@ -155,34 +196,40 @@ export default function DeliveryTracker() {
       }
       return;
     }
-
+  
+    // Lógica para INICIAR o rastreamento
     if (!navigator.geolocation) {
-      alert("Geolocalização não é suportada pelo seu navegador.");
-      return;
+      return alert("Geolocalização não é suportada pelo seu navegador.");
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (initialPosition) => {
-        setOrigin(initialPosition.coords);
-        setIsTracking(true);
-        requestWakeLock();
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          processNewPosition,
-          (error) => {
-            console.error("Erro durante o rastreamento:", error);
-            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-            setIsTracking(false);
-            releaseWakeLock();
-          },
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-        );
-      },
+  
+    if (!activeCompanyId) {
+      return alert("Por favor, selecione uma empresa para iniciar a rota.");
+    }
+  
+    const selectedCompany = companies.find(c => c.id === activeCompanyId);
+    if (!selectedCompany?.baseLocation) {
+      return alert("A empresa selecionada não tem uma localização de base definida. Por favor, cadastre a base na tela de 'Gerenciar Empresas'.");
+    }
+  
+    // Define a origem com base na localização da empresa e inicia o rastreamento
+    setOrigin(selectedCompany.baseLocation);
+    setIsTracking(true);
+    requestWakeLock();
+  
+    // Inicia o monitoramento contínuo
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      processNewPosition,
       (error) => {
-        console.error("Erro de permissão:", error);
-        alert(`Erro ao obter localização: ${error.message}`);
-      }
+        console.error("Erro durante o rastreamento:", error);
+        if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+        setIsTracking(false);
+        releaseWakeLock();
+        alert(`Erro de GPS: ${error.message}. O rastreamento foi interrompido.`);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
+  
 
   // --- COMPONENTES DE UI E RENDERIZAÇÃO ---
   const StatusDisplay = () => {
@@ -224,9 +271,32 @@ export default function DeliveryTracker() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         {activeScreen === 'dashboard' && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-8 p-4 text-center h-full">
+          <div className="flex flex-col items-center justify-center gap-6 p-4 text-center h-full">
+            <div className="w-full max-w-xs">
+              <Select
+                value={activeCompanyId || ''}
+                onValueChange={(companyId) => setActiveCompanyId(companyId)}
+                disabled={isTracking}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma empresa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.length > 0 ? (
+                    companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">Nenhuma empresa cadastrada.</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Card className="w-full max-w-xs shadow-lg bg-card">
               <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground">Entregas de Hoje</p>
@@ -254,7 +324,7 @@ export default function DeliveryTracker() {
       </main>
 
       {activeScreen === 'dashboard' && (
-        <footer className="p-4">
+        <footer className="p-4 mt-auto">
           <Button 
             size="lg" 
             className="w-full h-16 text-lg font-bold"
