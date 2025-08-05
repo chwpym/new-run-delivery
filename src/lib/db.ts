@@ -3,6 +3,7 @@
 import { openDB, type DBSchema } from 'idb';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
+import type { DailyEntry } from '@/types/dailyEntry';
 // Futuramente, importaremos outros tipos aqui
 // import type { Stop } from '@/types/stop';
 // import type { DailyEntry } from '@/types/dailyEntry';
@@ -20,6 +21,11 @@ interface RunDeliveryDBSchema extends DBSchema {
     key: string;
     value: Vehicle;
     indexes: { 'by-name': string };
+  };
+  daily_entries: {
+    key: string;
+    value: DailyEntry;
+    indexes: { 'by-date': string };
   };
   // Futuramente, adicionaremos outras tabelas aqui
   /*
@@ -40,7 +46,7 @@ interface RunDeliveryDBSchema extends DBSchema {
 // Se precisarmos adicionar novas tabelas ou índices no futuro,
 // nós incrementaremos o número da versão.
 const DB_NAME = 'RunDeliveryDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // 3. Cria e exporta a função que abre a conexão com o banco de dados.
 // Nossos componentes irão chamar esta função para poder ler e escrever dados.
@@ -52,15 +58,25 @@ export const getDb = () => {
       console.log(`Atualizando banco de dados da versão ${oldVersion} para ${newVersion}`);
 
       // Criamos a tabela 'companies' se ela não existir.
-      if (!db.objectStoreNames.contains('companies')) {
-        const companyStore = db.createObjectStore('companies', { keyPath: 'id' });
-        companyStore.createIndex('by-name', 'name');
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains('companies')) {
+          const companyStore = db.createObjectStore('companies', { keyPath: 'id' });
+          companyStore.createIndex('by-name', 'name');
+        }
+
+        // Criamos a tabela 'vehicles' se ela não existir.
+        if (!db.objectStoreNames.contains('vehicles')) {
+          const vehicleStore = db.createObjectStore('vehicles', { keyPath: 'id' });
+          vehicleStore.createIndex('by-name', 'name');
+        }
       }
 
-      // Criamos a tabela 'vehicles' se ela não existir.
-      if (!db.objectStoreNames.contains('vehicles')) {
-        const vehicleStore = db.createObjectStore('vehicles', { keyPath: 'id' });
-        vehicleStore.createIndex('by-name', 'name');
+      if (oldVersion < 2) {
+        // Cria a tabela 'daily_entries' se ela não existir.
+        if (!db.objectStoreNames.contains('daily_entries')) {
+          const entryStore = db.createObjectStore('daily_entries', { keyPath: 'id' });
+          entryStore.createIndex('by-date', 'date');
+        }
       }
 
       // Futuramente, a criação de novas tabelas virá aqui.
@@ -111,17 +127,42 @@ export async function deleteVehicle(id: string) {
   return db.delete('vehicles', id);
 }
 
+// Funções CRUD para a tabela 'daily_entries'
+
+export async function getAllEntries() {
+  const db = await getDb();
+  return db.getAll('daily_entries');
+}
+
+export async function getEntryById(id: string) {
+  const db = await getDb();
+  return db.get('daily_entries', id);
+}
+
+export async function saveDailyEntry(entry: DailyEntry) {
+  const db = await getDb();
+  return db.put('daily_entries', entry);
+}
+
+export async function deleteDailyEntry(id: string) {
+  const db = await getDb();
+  return db.delete('daily_entries', id);
+}
+
+
 // Funções de Backup e Restauração
 
 export async function exportDbToJson() {
   const db = await getDb();
   const companiesData = await db.getAll('companies');
   const vehiclesData = await db.getAll('vehicles');
+  const entriesData = await db.getAll('daily_entries');
   // Futuramente, adicionaremos outras tabelas aqui
 
   const dataToExport = {
     companies: companiesData,
     vehicles: vehiclesData,
+    daily_entries: entriesData
   };
 
   // Cria um "blob" (Binary Large Object) com os dados em formato JSON
@@ -130,7 +171,6 @@ export async function exportDbToJson() {
 
   // Cria um link temporário e simula um clique para iniciar o download
   const a = document.createElement('a');
-  a.href = url;
   a.download = `run-delivery-backup-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
 
@@ -143,18 +183,29 @@ export async function importDbFromJson(jsonData: string) {
   const data = JSON.parse(jsonData);
 
   // Inicia uma transação para apagar os dados antigos e inserir os novos
-  const tx = db.transaction(['companies', 'vehicles'], 'readwrite');
+  const tx = db.transaction(['companies', 'vehicles', 'daily_entries'], 'readwrite');
 
   // Limpa as tabelas atuais
   await tx.objectStore('companies').clear();
   await tx.objectStore('vehicles').clear();
+  await tx.objectStore('daily_entries').clear();
+
 
   // Insere os novos dados do backup
-  for (const company of data.companies) {
-    await tx.objectStore('companies').put(company);
+  if (data.companies) {
+    for (const company of data.companies) {
+      await tx.objectStore('companies').put(company);
+    }
   }
-  for (const vehicle of data.vehicles) {
-    await tx.objectStore('vehicles').put(vehicle);
+  if (data.vehicles) {
+    for (const vehicle of data.vehicles) {
+      await tx.objectStore('vehicles').put(vehicle);
+    }
+  }
+   if (data.daily_entries) {
+    for (const entry of data.daily_entries) {
+      await tx.objectStore('daily_entries').put(entry);
+    }
   }
 
   // Espera a transação ser completada

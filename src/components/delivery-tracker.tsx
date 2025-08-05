@@ -25,6 +25,7 @@ import { DataScreen } from './data-screen';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllCompanies } from '@/lib/db';
 import type { Company } from '@/types/company';
+import { DailyEntriesScreen } from './daily-entries-screen';
 
 
 // Função de cálculo de distância
@@ -321,6 +322,7 @@ export default function DeliveryTracker() {
         {activeScreen === 'veiculos' && <VehiclesScreen />}
         {activeScreen === 'empresas' && <CompaniesScreen />}
         {activeScreen === 'dados' && <DataScreen />}
+        {activeScreen === 'registros' && <DailyEntriesScreen deliveryCount={count} />}
       </main>
 
       {activeScreen === 'dashboard' && (
