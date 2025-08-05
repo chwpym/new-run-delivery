@@ -35,6 +35,8 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
   const [tips, setTips] = useState('0');
   const [startKm, setStartKm] = useState('0');
   const [endKm, setEndKm] = useState('0');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+
 
   // Valores calculados
   const totalFromDeliveries = useMemo(() => {
@@ -78,12 +80,8 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         if (companies.length > 0) {
           const defaultCompany = companies[0];
           setCompanyId(defaultCompany.id);
-          setDailyRate(String(defaultCompany.dailyRate || ''));
-          setDeliveryFee(String(defaultCompany.deliveryFee || ''));
         } else {
           setCompanyId(undefined);
-          setDailyRate('');
-          setDeliveryFee('');
         }
         setVehicleId(vehicles.length > 0 ? vehicles[0].id : undefined);
         setTips('');
@@ -94,15 +92,29 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
   }, [entryToEdit, isOpen, deliveryCount, companies, vehicles]);
 
   // Atualiza a diária e taxa de entrega ao mudar de empresa
-  useEffect(() => {
-    if (!entryToEdit && companyId) { // Apenas no modo de adição
-        const selected = companies.find(c => c.id === companyId);
-        if (selected) {
-            setDailyRate(String(selected.dailyRate || ''));
-            setDeliveryFee(String(selected.deliveryFee || ''));
+   useEffect(() => {
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      setSelectedCompany(company);
+      // Preenche os campos com base na empresa, mas apenas se for um novo registro
+      if (!entryToEdit) {
+        if (company.paymentType === 'daily') {
+          setDailyRate(String(company.dailyRate || 0));
+          setDeliveryFee(String(company.deliveryFee || 0));
+        } else if (company.paymentType === 'fixed') {
+          setDailyRate(String(company.fixedValue || 0));
+          setDeliveryFee('0');
         }
+      }
+    } else {
+      setSelectedCompany(null);
+      if(!entryToEdit) {
+        setDailyRate('0');
+        setDeliveryFee('0');
+      }
     }
-  }, [companyId, entryToEdit, companies]);
+  }, [companyId, companies, entryToEdit]);
+
 
   const handleSubmit = () => {
     const entryData: DailyEntry = {
@@ -127,7 +139,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl grid grid-rows-[auto_1fr_auto] h-full max-h-[95vh]">
         <DialogHeader>
           <DialogTitle>{entryToEdit ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
           <DialogDescription>
@@ -135,8 +147,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow pr-6 -mr-6">
-          <div className="space-y-4 py-4">
+        <div className="overflow-y-auto pr-6 space-y-4 py-4">
             {/* Data e Folga */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -180,11 +191,11 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dailyRate">Diária (R$)</Label>
-                    <Input id="dailyRate" type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} />
+                    <Input id="dailyRate" type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="deliveryFee">Taxa/Entrega (R$)</Label>
-                    <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} />
+                    <Input id="deliveryFee" type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} disabled={selectedCompany?.paymentType === 'fixed'}/>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tips">Gorjetas (R$)</Label>
@@ -217,7 +228,6 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                 </div>
               </div>
           </div>
-        </ScrollArea>
         
         <DialogFooter>
           <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
