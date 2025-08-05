@@ -28,7 +28,7 @@ export function CompaniesScreen() {
 
   const handleSaveCompany = async (companyData: Omit<Company, 'id' | 'baseLocation'>, id?: string) => {
     const companyToSave: Company = id
-      ? { ...companies.find(c => c.id === id)!, ...companyData, baseLocation: companies.find(c => c.id === id)?.baseLocation }
+      ? { ...companies.find(c => c.id === id)!, ...companyData }
       : { id: new Date().toISOString(), ...companyData };
 
     await saveCompany(companyToSave);
@@ -73,7 +73,7 @@ export function CompaniesScreen() {
                 <p className="font-bold text-lg">{company.name}</p>
                 <div className="text-sm text-muted-foreground">
                   <p>Pagamento: {company.paymentType === 'daily' ? `Diária (R$ ${company.dailyRate?.toFixed(2) || '0.00'})` : `Fixo (R$ ${company.fixedValue?.toFixed(2) || '0.00'})`}</p>
-                  <p>Taxa por Entrega: R$ {company.deliveryFee.toFixed(2)}</p>
+                  <p>Taxa por Entrega: R$ {(company.deliveryFee || 0).toFixed(2)}</p>
                   {company.baseLocation ? (
                     <p className="text-xs text-green-500">Base definida: {company.baseLocation.latitude.toFixed(4)}, {company.baseLocation.longitude.toFixed(4)}</p>
                   ) : (
