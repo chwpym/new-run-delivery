@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,9 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{companyToEdit ? 'Editar Empresa' : 'Adicionar Nova Empresa'}</DialogTitle>
+          <DialogDescription>
+            {companyToEdit ? 'Faça as alterações no nome da empresa.' : 'Preencha o nome da nova empresa para adicioná-la.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
