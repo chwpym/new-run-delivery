@@ -26,13 +26,13 @@ export function CompaniesScreen() {
     fetchCompanies();
   }, []);
 
-  const handleSaveCompany = async (companyData: Pick<Company, 'name'>, id?: string) => {
+  const handleSaveCompany = async (companyData: Omit<Company, 'id' | 'baseLocation'>, id?: string) => {
     const companyToSave: Company = id
-      ? { ...companies.find(c => c.id === id)!, ...companyData, baseLocation: companies.find(c => c.id === id)?.baseLocation } // Editando, mantendo a baseLocation
-      : { id: new Date().toISOString(), ...companyData }; // Adicionando
+      ? { ...companies.find(c => c.id === id)!, ...companyData, baseLocation: companies.find(c => c.id === id)?.baseLocation }
+      : { id: new Date().toISOString(), ...companyData };
 
     await saveCompany(companyToSave);
-    fetchCompanies(); // Recarrega a lista da tela
+    fetchCompanies();
   };
 
   const handleSetBaseLocation = async (companyId: string) => {
@@ -71,13 +71,17 @@ export function CompaniesScreen() {
             {companies.length > 0 ? companies.map(company => (
               <Card key={company.id} className="p-4 space-y-2">
                 <p className="font-bold text-lg">{company.name}</p>
-                {company.baseLocation ? (
-                  <p className="text-xs text-green-500">Base definida: {company.baseLocation.latitude.toFixed(4)}, {company.baseLocation.longitude.toFixed(4)}</p>
-                ) : (
-                  <p className="text-xs text-yellow-500">Base não definida.</p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleSetBaseLocation(company.id)}><MapPin className="mr-2 h-4 w-4" /> Definir Base Aqui</Button>
+                <div className="text-sm text-muted-foreground">
+                  <p>Pagamento: {company.paymentType === 'daily' ? `Diária (R$ ${company.dailyRate?.toFixed(2) || '0.00'})` : `Fixo (R$ ${company.fixedValue?.toFixed(2) || '0.00'})`}</p>
+                  <p>Taxa por Entrega: R$ {company.deliveryFee.toFixed(2)}</p>
+                  {company.baseLocation ? (
+                    <p className="text-xs text-green-500">Base definida: {company.baseLocation.latitude.toFixed(4)}, {company.baseLocation.longitude.toFixed(4)}</p>
+                  ) : (
+                    <p className="text-xs text-yellow-500">Base não definida.</p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => handleSetBaseLocation(company.id)}><MapPin className="mr-2 h-4 w-4" /> Definir Base</Button>
                   <Button variant="outline" size="sm" onClick={() => { setCompanyToEdit(company); setIsModalOpen(true); }}><Edit className="mr-2 h-4 w-4" /> Editar</Button>
                   <Button variant="destructive" size="sm" onClick={() => setCompanyToDelete(company)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</Button>
                 </div>
