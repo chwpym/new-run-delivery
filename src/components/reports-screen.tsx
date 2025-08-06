@@ -11,13 +11,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Pie, PieChart, Label } from "recharts";
-import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances } from '@/lib/db';
-import type { DailyEntry, Cost, Refuel, Maintenance } from '@/types';
-import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, getMonth, getYear, addMonths } from 'date-fns';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Pie, PieChart, Label as RechartsLabel } from "recharts";
+import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getAllCompanies, getAllVehicles } from '@/lib/db';
+import type { DailyEntry, Cost, Refuel, Maintenance, Company, Vehicle } from '@/types';
+import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Label } from './ui/label';
 
 const chartConfig = {
   totalEarned: { label: "Ganhos (R$)", color: "hsl(var(--primary))" },
@@ -31,11 +32,15 @@ const pieChartConfig = {
 
 export function ReportsScreen() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [entries, setEntries] = useState<DailyEntry[]>([]);
-  const [costs, setCosts] = useState<Cost[]>([]);
-  const [refuels, setRefuels] = useState<Refuel[]>([]);
-  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+
+  const [filters, setFilters] = useState({
+    companyId: 'all',
+    vehicleId: 'all',
+  });
+
   const [chartData, setChartData] = useState<any[]>([]);
   const [pieData, setPieData] = useState<any[]>([]);
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, days: 0, avg: 0 });
@@ -43,27 +48,47 @@ export function ReportsScreen() {
   useEffect(() => {
     const fetchData = async () => {
       if (!date) return;
-
+      
       const start = startOfMonth(date);
       const end = endOfMonth(date);
       const startStr = format(start, 'yyyy-MM-dd');
       const endStr = format(end, 'yyyy-MM-dd');
 
-      const allEntries = await getAllEntries();
-      const monthEntries = allEntries.filter(e => e.date >= startStr && e.date <= endStr);
-      setEntries(monthEntries);
+      // Fetch all data once
+      const [
+        allEntries, 
+        allCosts, 
+        allRefuels, 
+        allMaintenances, 
+        allCompanies, 
+        allVehicles
+      ] = await Promise.all([
+        getAllEntries(),
+        getAllCosts(),
+        getAllRefuels(),
+        getAllMaintenances(),
+        getAllCompanies(),
+        getAllVehicles(),
+      ]);
 
-      const allCosts = await getAllCosts();
-      const monthCosts = allCosts.filter(c => c.date >= startStr && c.date <= endStr);
-      setCosts(monthCosts);
+      setCompanies(allCompanies);
+      setVehicles(allVehicles);
+
+      // Apply filters
+      const monthEntries = allEntries.filter(e => {
+        const isWithinDate = e.date >= startStr && e.date <= endStr;
+        const companyMatch = filters.companyId === 'all' || e.companyId === filters.companyId;
+        const vehicleMatch = filters.vehicleId === 'all' || e.vehicleId === filters.vehicleId;
+        return isWithinDate && companyMatch && vehicleMatch;
+      });
       
-      const allRefuels = await getAllRefuels();
-      const monthRefuels = allRefuels.filter(r => r.date >= startStr && r.date <= endStr);
-      setRefuels(monthRefuels);
+      const vehicleFilteredIds = filters.vehicleId === 'all' 
+        ? allVehicles.map(v => v.id) 
+        : [filters.vehicleId];
 
-      const allMaintenances = await getAllMaintenances();
-      const monthMaintenances = allMaintenances.filter(m => m.date >= startStr && m.date <= endStr);
-      setMaintenances(monthMaintenances);
+      const monthCosts = allCosts.filter(c => c.date >= startStr && c.date <= endStr); // Costs are not tied to vehicle/company
+      const monthRefuels = allRefuels.filter(r => r.date >= startStr && r.date <= endStr && vehicleFilteredIds.includes(r.vehicleId));
+      const monthMaintenances = allMaintenances.filter(m => m.date >= startStr && m.date <= endStr && vehicleFilteredIds.includes(m.vehicleId));
 
       // Process bar chart data
       const daysInMonth = eachDayOfInterval({ start, end });
@@ -93,7 +118,7 @@ export function ReportsScreen() {
       ].filter(item => item.value > 0));
     };
     fetchData();
-  }, [date]);
+  }, [date, filters]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
     setDate(currentDate => {
@@ -106,22 +131,50 @@ export function ReportsScreen() {
     <div className="p-4 space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className='flex items-center gap-3 self-start'>
-              <BarChart2 className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>Relatório Mensal</CardTitle>
-                <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
-              </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className='flex items-center gap-3 self-start'>
+                <BarChart2 className="h-6 w-6 text-primary" />
+                <div>
+                    <CardTitle>Relatório Mensal</CardTitle>
+                    <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
+                </div>
+                </div>
+                <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+                    <div className="w-full">
+                        <DatePicker date={date} setDate={setDate} />
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
+                        <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
+                    </div>
+                </div>
             </div>
-            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
-              <DatePicker date={date} setDate={setDate} />
-              <div className="flex items-center gap-2 w-full">
-                <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
-                <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
+            
+            <Card className="p-4 mt-4 bg-card/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label>Empresa</Label>
+                    <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas as Empresas</SelectItem>
+                        {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label>Veículo</Label>
+                    <Select value={filters.vehicleId} onValueChange={(id) => setFilters(prev => ({...prev, vehicleId: id}))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os Veículos</SelectItem>
+                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
               </div>
-            </div>
-          </div>
+            </Card>
+
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 text-center">
@@ -158,7 +211,7 @@ export function ReportsScreen() {
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                       <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
-                        <Label
+                        <RechartsLabel
                           content={({ viewBox }) => {
                             if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                               return (
