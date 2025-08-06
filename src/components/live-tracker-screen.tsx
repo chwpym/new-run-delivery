@@ -8,6 +8,8 @@ import { Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle } from "l
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Settings, Status } from '@/types';
 import type { Company } from '@/types/company';
+import { playErrorSound, playSuccessSound, vibrateError, vibrateSuccess } from '@/lib/alerts';
+
 
 function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coord2: {latitude: number, longitude: number}) {
   const R = 6371e3;
@@ -42,7 +44,11 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
   const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
 
-  const handleIncrement = () => setCount(c => c + 1);
+  const handleIncrement = () => {
+    setCount(c => c + 1);
+    playSuccessSound();
+    vibrateSuccess();
+  }
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
   const processNewPosition = (position: GeolocationPosition) => {
@@ -85,6 +91,8 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
       console.error("Erro GPS:", error); 
       // Não limpa o watchId, permite que o navegador tente recuperar o sinal
       setStatus('GPS Error');
+      playErrorSound();
+      vibrateError();
     }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
   };
 
