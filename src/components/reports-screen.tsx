@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart2, Calendar, DollarSign, TrendingUp, Filter, Fuel, Wrench } from "lucide-react";
 import {
   ChartConfig,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Pie, PieChart, Label } from "recharts";
 import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances } from '@/lib/db';
-import { DailyEntry, Cost, Refuel, Maintenance } from '@/types';
+import type { DailyEntry, Cost, Refuel, Maintenance } from '@/types';
 import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePicker } from './ui/date-picker';
