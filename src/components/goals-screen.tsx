@@ -13,6 +13,7 @@ import type { Goal, Company } from '@/types';
 import { format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export function GoalsScreen() {
   const [date, setDate] = useState(new Date());
@@ -22,6 +23,7 @@ export function GoalsScreen() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [goalValue, setGoalValue] = useState('');
   const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+  const { toast } = useToast();
 
   const goalId = selectedCompanyId === 'all'
     ? format(date, 'yyyy-MM')
@@ -59,7 +61,14 @@ export function GoalsScreen() {
 
   const handleSaveGoal = async () => {
     const value = parseFloat(goalValue);
-    if (isNaN(value) || value < 0) return alert("Valor da meta inválido.");
+    if (isNaN(value) || value < 0) {
+      toast({
+        variant: "destructive",
+        title: "Valor Inválido",
+        description: "Por favor, insira um valor de meta numérico e positivo.",
+      });
+      return;
+    }
     
     const newGoal: Goal = {
         id: goalId,
@@ -69,7 +78,10 @@ export function GoalsScreen() {
 
     await saveGoal(newGoal);
     setGoal(newGoal); // Atualiza o estado local com a nova meta
-    alert("Meta salva com sucesso!");
+    toast({
+      title: "Meta Salva!",
+      description: "Sua meta financeira foi atualizada com sucesso.",
+    });
   };
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
