@@ -1,7 +1,7 @@
 // src/components/goals-screen.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ export function GoalsScreen() {
 
   const goalId = format(date, 'yyyy-MM');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const fetchedGoal = await getGoal(goalId);
     setGoal(fetchedGoal || { id: goalId, value: 0 });
     setGoalValue(String(fetchedGoal?.value || ''));
@@ -33,11 +33,11 @@ export function GoalsScreen() {
       .filter(e => e.date >= start && e.date <= end && !e.isDayOff)
       .reduce((sum, e) => sum + (e.totalEarned || 0), 0);
     setMonthlyEarnings(monthly);
-  };
+  }, [date, goalId]);
 
   useEffect(() => {
     fetchData();
-  }, [date, goalId]);
+  }, [date, fetchData]);
 
   const handleSaveGoal = async () => {
     const value = parseFloat(goalValue);

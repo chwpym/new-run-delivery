@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'PT Sans', sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -17,7 +13,7 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 166 84% 40%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -26,8 +22,8 @@ body {
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 0 84.2% 60.2%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -38,47 +34,47 @@ body {
 
     --radius: 0.5rem;
 
-    --chart-1: 217.2 91.2% 59.8%;
-    --chart-2: 190 81% 50%;
-    --chart-3: 10 81% 50%;
+    --chart-1: 166 84% 40%;
+    --chart-2: 210 81% 50%;
+    --chart-3: 0 81% 50%;
     --chart-4: 280 81% 55%;
-    --chart-5: 160 81% 45%;
+    --chart-5: 40 81% 45%;
   }
 
   .dark {
-    --background: 220 13% 9%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
-    --card: 220 13% 13%;
+ 
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
-    --popover: 220 13% 9%;
+ 
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 220 13% 13%;
-
-    --secondary: 215 28% 17%;
+ 
+    --primary: 166 74% 50%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
-    --muted: 215 28% 17%;
-    --muted-foreground: 216 12% 52%;
-
-    --accent: 215 28% 17%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 0 72.2% 50.6%;
     --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 51%;
+ 
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 166 84% 44%;
 
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 217.2 91.2% 59.8%;
-
-    --chart-1: 217.2 91.2% 59.8%;
-    --chart-2: 190 81% 50%;
-    --chart-3: 10 81% 50%;
-    --chart-4: 280 81% 55%;
-    --chart-5: 160 81% 45%;
+    --chart-1: 166 74% 50%;
+    --chart-2: 210 71% 60%;
+    --chart-3: 0 71% 60%;
+    --chart-4: 280 71% 65%;
+    --chart-5: 40 71% 55%;
   }
 }
 

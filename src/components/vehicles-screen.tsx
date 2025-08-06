@@ -108,7 +108,7 @@ export function VehiclesScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O veículo "{vehicleToDelete?.name}" será excluído permanentemente.
+              Esta ação não pode ser desfeita. O veículo &quot;{vehicleToDelete?.name}&quot; será excluído permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

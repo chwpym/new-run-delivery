@@ -317,7 +317,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
 
       <AlertDialog open={!!entryToDelete} onOpenChange={() => setEntryToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Tem certeza?</AlertDialogTitle><AlertDialogDescription>O registro do dia "{entryToDelete?.date ? format(parseISO(entryToDelete.date), 'dd/MM/yyyy') : ''}" será excluído permanentemente.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Tem certeza?</AlertDialogTitle><AlertDialogDescription>O registro do dia &quot;{entryToDelete?.date ? format(parseISO(entryToDelete.date), 'dd/MM/yyyy') : ''}&quot; será excluído permanentemente.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEntry}>Sim, excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

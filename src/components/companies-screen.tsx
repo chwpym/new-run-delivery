@@ -100,7 +100,7 @@ export function CompaniesScreen() {
 
       <AlertDialog open={!!companyToDelete} onOpenChange={() => setCompanyToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Tem certeza?</AlertDialogTitle><AlertDialogDescription>A empresa "{companyToDelete?.name}" será excluída permanentemente.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Tem certeza?</AlertDialogTitle><AlertDialogDescription>A empresa &quot;{companyToDelete?.name}&quot; será excluída permanentemente.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteCompany}>Sim, excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
