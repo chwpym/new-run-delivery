@@ -1,4 +1,3 @@
-// src/components/delivery-tracker.tsx (agora é o MainLayout)
 "use client";
 
 import { useState, useEffect } from 'react';
