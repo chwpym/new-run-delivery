@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
   Building, Car, LogOut, MapPin
@@ -31,6 +31,9 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
       <SheetContent side="left" className="w-[280px] flex flex-col">
         <SheetHeader>
           <SheetTitle className="text-left">Menu Principal</SheetTitle>
+          <SheetDescription className="text-left sr-only">
+            Navegação principal do aplicativo. Use os botões para acessar as diferentes telas.
+          </SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col justify-between overflow-y-auto">
           <nav className="mt-8 flex flex-col gap-2">
