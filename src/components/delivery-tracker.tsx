@@ -18,7 +18,11 @@ import type { Company } from '@/types/company';
 import { DailyEntriesScreen } from './daily-entries-screen';
 import { DashboardScreen } from './dashboard-screen';
 import { LiveTrackerScreen } from './live-tracker-screen';
-import { PlaceholderScreen } from './placeholder-screen'; // Usado para telas em construção
+import { CostsScreen } from './costs-screen';
+import { RefuelsScreen } from './refuels-screen';
+import { MaintenancesScreen } from './maintenances-screen';
+import { GoalsScreen } from './goals-screen';
+
 
 export default function DeliveryTracker() {
   const [isMounted, setIsMounted] = useState(false);
@@ -76,15 +80,14 @@ export default function DeliveryTracker() {
         return <VehiclesScreen />;
       case 'dados':
         return <DataScreen />;
-      // Telas de placeholder para funcionalidades futuras
       case 'custos':
-        return <PlaceholderScreen title="Custos" description="Gerencie seus custos fixos e variáveis." icon="DollarSign" />;
+        return <CostsScreen />;
       case 'abastecer':
-        return <PlaceholderScreen title="Abastecimento" description="Registre seus abastecimentos para controle de custos." icon="Fuel" />;
+        return <RefuelsScreen />;
       case 'manutencao':
-        return <PlaceholderScreen title="Manutenção" description="Acompanhe os serviços de manutenção do seu veículo." icon="Wrench" />;
+        return <MaintenancesScreen />;
       case 'metas':
-        return <PlaceholderScreen title="Metas" description="Defina e acompanhe suas metas financeiras." icon="Target" />;
+        return <GoalsScreen />;
       default:
         return <DashboardScreen onNavigate={setActiveScreen} />;
     }

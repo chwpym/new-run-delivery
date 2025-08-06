@@ -4,18 +4,16 @@ import { openDB, type DBSchema } from 'idb';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
 import type { DailyEntry } from '@/types/dailyEntry';
-// Futuramente, importaremos outros tipos aqui
-// import type { Stop } from '@/types/stop';
-// import type { DailyEntry } from '@/types/dailyEntry';
+import type { Cost } from '@/types/cost';
+import type { Refuel } from '@/types/refuel';
+import type { Maintenance } from '@/types/maintenance';
+import type { Goal } from '@/types/goal';
 
-// 1. Define a "Schema" do nosso banco de dados.
-// Isso diz ao TypeScript quais "tabelas" (Object Stores) nós temos
-// e como são os dados dentro delas.
 interface RunDeliveryDBSchema extends DBSchema {
   companies: {
-    key: string; // A chave primária (ID) é uma string
-    value: Company; // Os valores são do tipo Company
-    indexes: { 'by-name': string }; // Um índice para buscar por nome
+    key: string;
+    value: Company;
+    indexes: { 'by-name': string };
   };
   vehicles: {
     key: string;
@@ -27,44 +25,40 @@ interface RunDeliveryDBSchema extends DBSchema {
     value: DailyEntry;
     indexes: { 'by-date': string };
   };
-  // Futuramente, adicionaremos outras tabelas aqui
-  /*
-  stops: {
+  costs: {
     key: string;
-    value: Stop;
-    indexes: { 'by-date': number };
-  };
-  daily_entries: {
-    key: string;
-    value: DailyEntry;
+    value: Cost;
     indexes: { 'by-date': string };
   };
-  */
+  refuels: {
+    key: string;
+    value: Refuel;
+    indexes: { 'by-date': string };
+  };
+  maintenances: {
+    key: string;
+    value: Maintenance;
+    indexes: { 'by-date': string };
+  };
+  goals: {
+    key: string; // AAAA-MM
+    value: Goal;
+  };
 }
 
-// 2. Define o nome e a versão do nosso banco de dados.
-// Se precisarmos adicionar novas tabelas ou índices no futuro,
-// nós incrementaremos o número da versão.
 const DB_NAME = 'RunDeliveryDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
-// 3. Cria e exporta a função que abre a conexão com o banco de dados.
-// Nossos componentes irão chamar esta função para poder ler e escrever dados.
 export const getDb = () => {
   return openDB<RunDeliveryDBSchema>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, newVersion, transaction) {
-      // Esta função só é executada na primeira vez que o usuário abre o app,
-      // ou quando nós aumentamos o DB_VERSION.
       console.log(`Atualizando banco de dados da versão ${oldVersion} para ${newVersion}`);
 
-      // Criamos a tabela 'companies' se ela não existir.
       if (oldVersion < 1) {
         if (!db.objectStoreNames.contains('companies')) {
           const companyStore = db.createObjectStore('companies', { keyPath: 'id' });
           companyStore.createIndex('by-name', 'name');
         }
-
-        // Criamos a tabela 'vehicles' se ela não existir.
         if (!db.objectStoreNames.contains('vehicles')) {
           const vehicleStore = db.createObjectStore('vehicles', { keyPath: 'id' });
           vehicleStore.createIndex('by-name', 'name');
@@ -72,35 +66,37 @@ export const getDb = () => {
       }
 
       if (oldVersion < 2) {
-        // Cria a tabela 'daily_entries' se ela não existir.
         if (!db.objectStoreNames.contains('daily_entries')) {
           const entryStore = db.createObjectStore('daily_entries', { keyPath: 'id' });
           entryStore.createIndex('by-date', 'date');
         }
       }
 
-      // Futuramente, a criação de novas tabelas virá aqui.
+      if (oldVersion < 3) {
+        if (!db.objectStoreNames.contains('costs')) {
+          const store = db.createObjectStore('costs', { keyPath: 'id' });
+          store.createIndex('by-date', 'date');
+        }
+        if (!db.objectStoreNames.contains('refuels')) {
+          const store = db.createObjectStore('refuels', { keyPath: 'id' });
+          store.createIndex('by-date', 'date');
+        }
+        if (!db.objectStoreNames.contains('maintenances')) {
+          const store = db.createObjectStore('maintenances', { keyPath: 'id' });
+          store.createIndex('by-date', 'date');
+        }
+        if (!db.objectStoreNames.contains('goals')) {
+          db.createObjectStore('goals', { keyPath: 'id' });
+        }
+      }
     },
   });
 };
 
-// Funções CRUD para a tabela 'companies'
-
-export async function getAllCompanies() {
-  const db = await getDb();
-  return db.getAll('companies');
-}
-
-export async function saveCompany(company: Company) {
-  const db = await getDb();
-  return db.put('companies', company);
-}
-
-export async function deleteCompany(id: string) {
-  const db = await getDb();
-  return db.delete('companies', id);
-}
-
+// Companies
+export async function getAllCompanies() { return (await getDb()).getAll('companies'); }
+export async function saveCompany(company: Company) { return (await getDb()).put('companies', company); }
+export async function deleteCompany(id: string) { return (await getDb()).delete('companies', id); }
 export async function setCompanyBaseLocation(id: string, baseLocation: { latitude: number; longitude: number; }) {
   const db = await getDb();
   const company = await db.get('companies', id);
@@ -110,104 +106,73 @@ export async function setCompanyBaseLocation(id: string, baseLocation: { latitud
   }
 }
 
-// Funções CRUD para a tabela 'vehicles'
+// Vehicles
+export async function getAllVehicles() { return (await getDb()).getAll('vehicles'); }
+export async function saveVehicle(vehicle: Vehicle) { return (await getDb()).put('vehicles', vehicle); }
+export async function deleteVehicle(id: string) { return (await getDb()).delete('vehicles', id); }
 
-export async function getAllVehicles() {
-  const db = await getDb();
-  return db.getAll('vehicles');
-}
+// Daily Entries
+export async function getAllEntries() { return (await getDb()).getAll('daily_entries'); }
+export async function getEntryById(id: string) { return (await getDb()).get('daily_entries', id); }
+export async function saveDailyEntry(entry: DailyEntry) { return (await getDb()).put('daily_entries', entry); }
+export async function deleteDailyEntry(id: string) { return (await getDb()).delete('daily_entries', id); }
 
-export async function saveVehicle(vehicle: Vehicle) {
-  const db = await getDb();
-  return db.put('vehicles', vehicle);
-}
+// Costs
+export async function getAllCosts() { return (await getDb()).getAll('costs'); }
+export async function saveCost(cost: Cost) { return (await getDb()).put('costs', cost); }
+export async function deleteCost(id: string) { return (await getDb()).delete('costs', id); }
 
-export async function deleteVehicle(id: string) {
-  const db = await getDb();
-  return db.delete('vehicles', id);
-}
+// Refuels
+export async function getAllRefuels() { return (await getDb()).getAll('refuels'); }
+export async function saveRefuel(refuel: Refuel) { return (await getDb()).put('refuels', refuel); }
+export async function deleteRefuel(id: string) { return (await getDb()).delete('refuels', id); }
 
-// Funções CRUD para a tabela 'daily_entries'
+// Maintenances
+export async function getAllMaintenances() { return (await getDb()).getAll('maintenances'); }
+export async function saveMaintenance(maintenance: Maintenance) { return (await getDb()).put('maintenances', maintenance); }
+export async function deleteMaintenance(id: string) { return (await getDb()).delete('maintenances', id); }
 
-export async function getAllEntries() {
-  const db = await getDb();
-  return db.getAll('daily_entries');
-}
+// Goals
+export async function getGoal(id: string) { return (await getDb()).get('goals', id); }
+export async function saveGoal(goal: Goal) { return (await getDb()).put('goals', goal); }
 
-export async function getEntryById(id: string) {
-  const db = await getDb();
-  return db.get('daily_entries', id);
-}
-
-export async function saveDailyEntry(entry: DailyEntry) {
-  const db = await getDb();
-  return db.put('daily_entries', entry);
-}
-
-export async function deleteDailyEntry(id: string) {
-  const db = await getDb();
-  return db.delete('daily_entries', id);
-}
-
-
-// Funções de Backup e Restauração
-
+// Backup & Restore
 export async function exportDbToJson() {
   const db = await getDb();
-  const companiesData = await db.getAll('companies');
-  const vehiclesData = await db.getAll('vehicles');
-  const entriesData = await db.getAll('daily_entries');
-  // Futuramente, adicionaremos outras tabelas aqui
-
   const dataToExport = {
-    companies: companiesData,
-    vehicles: vehiclesData,
-    daily_entries: entriesData
+    companies: await db.getAll('companies'),
+    vehicles: await db.getAll('vehicles'),
+    daily_entries: await db.getAll('daily_entries'),
+    costs: await db.getAll('costs'),
+    refuels: await db.getAll('refuels'),
+    maintenances: await db.getAll('maintenances'),
+    goals: await db.getAll('goals'),
   };
 
-  // Cria um "blob" (Binary Large Object) com os dados em formato JSON
   const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-
-  // Cria um link temporário e simula um clique para iniciar o download
   const a = document.createElement('a');
+  a.href = url;
   a.download = `run-delivery-backup-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
-
-  // Libera a URL do objeto da memória
   URL.revokeObjectURL(url);
+  a.remove();
 }
 
 export async function importDbFromJson(jsonData: string) {
   const db = await getDb();
   const data = JSON.parse(jsonData);
+  const stores = ['companies', 'vehicles', 'daily_entries', 'costs', 'refuels', 'maintenances', 'goals'] as const;
+  const tx = db.transaction(stores, 'readwrite');
 
-  // Inicia uma transação para apagar os dados antigos e inserir os novos
-  const tx = db.transaction(['companies', 'vehicles', 'daily_entries'], 'readwrite');
-
-  // Limpa as tabelas atuais
-  await tx.objectStore('companies').clear();
-  await tx.objectStore('vehicles').clear();
-  await tx.objectStore('daily_entries').clear();
-
-
-  // Insere os novos dados do backup
-  if (data.companies) {
-    for (const company of data.companies) {
-      await tx.objectStore('companies').put(company);
-    }
-  }
-  if (data.vehicles) {
-    for (const vehicle of data.vehicles) {
-      await tx.objectStore('vehicles').put(vehicle);
-    }
-  }
-   if (data.daily_entries) {
-    for (const entry of data.daily_entries) {
-      await tx.objectStore('daily_entries').put(entry);
+  for (const storeName of stores) {
+    await tx.objectStore(storeName).clear();
+    if (data[storeName]) {
+      for (const record of data[storeName]) {
+        await tx.objectStore(storeName).put(record);
+      }
     }
   }
 
-  // Espera a transação ser completada
   await tx.done;
 }
