@@ -1,3 +1,4 @@
+// src/components/delivery-tracker.tsx (agora é o MainLayout)
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -17,7 +18,7 @@ import type { Company } from '@/types/company';
 import { DailyEntriesScreen } from './daily-entries-screen';
 import { DashboardScreen } from './dashboard-screen';
 import { LiveTrackerScreen } from './live-tracker-screen';
-import { PlaceholderScreen } from './placeholder-screen';
+import { PlaceholderScreen } from './placeholder-screen'; // Usado para telas em construção
 
 export default function DeliveryTracker() {
   const [isMounted, setIsMounted] = useState(false);
@@ -75,14 +76,15 @@ export default function DeliveryTracker() {
         return <VehiclesScreen />;
       case 'dados':
         return <DataScreen />;
+      // Telas de placeholder para funcionalidades futuras
       case 'custos':
-        return <PlaceholderScreen title="Custos" description="Gerencie seus custos fixos e variáveis." />;
+        return <PlaceholderScreen title="Custos" description="Gerencie seus custos fixos e variáveis." icon="DollarSign" />;
       case 'abastecer':
-        return <PlaceholderScreen title="Abastecimento" description="Registre seus abastecimentos para controle de custos." />;
+        return <PlaceholderScreen title="Abastecimento" description="Registre seus abastecimentos para controle de custos." icon="Fuel" />;
       case 'manutencao':
-        return <PlaceholderScreen title="Manutenção" description="Acompanhe os serviços de manutenção do seu veículo." />;
+        return <PlaceholderScreen title="Manutenção" description="Acompanhe os serviços de manutenção do seu veículo." icon="Wrench" />;
       case 'metas':
-        return <PlaceholderScreen title="Metas" description="Defina e acompanhe suas metas financeiras." />;
+        return <PlaceholderScreen title="Metas" description="Defina e acompanhe suas metas financeiras." icon="Target" />;
       default:
         return <DashboardScreen onNavigate={setActiveScreen} />;
     }
@@ -95,7 +97,7 @@ export default function DeliveryTracker() {
         <div className="flex items-center gap-1"><ThemeToggle /><Button onClick={() => setIsResetDialogOpen(true)} variant="ghost" size="icon"><RotateCcw className="h-5 w-5" /></Button><SettingsSheet settings={settings} setSettings={setSettings} /></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-background">
         {renderScreen()}
       </main>
 

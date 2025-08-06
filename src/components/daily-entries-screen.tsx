@@ -1,10 +1,11 @@
+// src/components/daily-entries-screen.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListChecks, PlusCircle, Edit, Trash2, SlidersHorizontal, Coffee, Briefcase } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getAllEntries, saveDailyEntry, deleteDailyEntry, getAllCompanies, getAllVehicles } from '@/lib/db';
@@ -172,7 +173,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
           </CardHeader>
           <CardContent>
             {/* Painel de Filtros */}
-            <Card className="p-4 mb-6 bg-card">
+            <Card className="p-4 mb-6 bg-card/50">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 {/* Filtro Rápido (Sempre Visível) */}
                 <div className="flex-grow sm:flex-grow-0">
@@ -250,7 +251,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                     <div className="flex items-center gap-2">
                       {entry.isDayOff ? <Coffee className="h-5 w-5 text-blue-500" /> : <Briefcase className="h-5 w-5 text-primary" />}
                       <CardTitle className="text-lg">
-                        {format(parseISO(entry.date), "dd/MM/yyyy")} - {entry.isDayOff ? 'FOLGA' : getCompanyName(entry.companyId)}
+                        {format(parseISO(entry.date), "dd/MM/yyyy", { locale: ptBR })} - {entry.isDayOff ? 'FOLGA' : getCompanyName(entry.companyId)}
                       </CardTitle>
                     </div>
                     <div className="flex gap-2">
@@ -305,5 +306,3 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
     </>
   );
 }
-
-    

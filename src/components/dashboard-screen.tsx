@@ -29,7 +29,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
 
   return (
     <div className="p-4 space-y-6">
-      <Card>
+      <Card className="bg-card">
         <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Resumo do Mês</CardTitle><TrendingUp className="h-5 w-5 text-muted-foreground" /></CardHeader>
         <CardContent><p className="text-4xl font-bold text-primary">R$ {monthlyEarnings.toFixed(2)}</p><p className="text-sm text-muted-foreground">Ganhos em {format(new Date(), 'MMMM', { locale: ptBR })}</p></CardContent>
       </Card>

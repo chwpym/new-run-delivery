@@ -89,13 +89,13 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
 
   return (
     <>
-      <main className="flex flex-col items-center justify-center gap-6 p-4 text-center h-full">
+      <div className="flex flex-col items-center justify-center gap-6 p-4 text-center h-full">
         <div className="w-full max-w-xs"><Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}><SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger><SelectContent>{companies.length > 0 ? companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <div className="p-2 text-sm text-muted-foreground">Nenhuma empresa.</div>}</SelectContent></Select></div>
         <Card className="w-full max-w-xs shadow-lg bg-card"><CardContent className="p-6"><p className="text-sm text-muted-foreground">Entregas de Hoje</p><p className="text-8xl font-bold tracking-tighter text-primary">{count}</p></CardContent></Card>
         <div className="flex w-full max-w-xs gap-4"><Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement}><Minus className="h-5 w-5 mr-2" /> -1</Button><Button size="lg" className="flex-1" onClick={handleIncrement}><Plus className="h-5 w-5 mr-2" /> +1</Button></div>
         <StatusDisplay />
-      </main>
-      <footer className="p-4 mt-auto"><Button size="lg" className="w-full h-16 text-lg font-bold" onClick={handleToggleTracking} variant={isTracking ? "destructive" : "default"}>{isTracking ? <><Square className="h-6 w-6 mr-3" /> Parar Rota</> : <><Play className="h-6 w-6 mr-3" /> Iniciar Rota</>}</Button></footer>
+      </div>
+      <footer className="p-4 border-t mt-auto"><Button size="lg" className="w-full h-16 text-lg font-bold" onClick={handleToggleTracking} variant={isTracking ? "destructive" : "default"}>{isTracking ? <><Square className="h-6 w-6 mr-3" /> Parar Rota</> : <><Play className="h-6 w-6 mr-3" /> Iniciar Rota</>}</Button></footer>
     </>
   );
 }
