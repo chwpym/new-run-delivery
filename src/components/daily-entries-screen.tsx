@@ -8,7 +8,7 @@ import { ListChecks, PlusCircle, Edit, Trash2, SlidersHorizontal, Coffee, Briefc
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { getAllEntries, saveDailyEntry, deleteDailyEntry, getAllCompanies, getAllVehicles } from '@/lib/db';
+import { getAllEntries, saveDailyEntry, deleteDailyEntry, getAllCompanies, getAllVehicles, getAllRefuels } from '@/lib/db';
 import type { DailyEntry } from '@/types/dailyEntry';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
@@ -17,6 +17,7 @@ import { DatePicker } from './ui/date-picker';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Collapsible, CollapsibleContent } from './ui/collapsible';
+import type { Refuel } from '@/types';
 
 interface DailyEntriesScreenProps {
   deliveryCount: number;
@@ -26,6 +27,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   const [allEntries, setAllEntries] = useState<DailyEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [refuels, setRefuels] = useState<Refuel[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
@@ -48,14 +50,16 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
 
   // Função para carregar/recarregar todos os dados
   const fetchData = async () => {
-    const [allEntriesData, allCompanies, allVehicles] = await Promise.all([
+    const [allEntriesData, allCompanies, allVehicles, allRefuels] = await Promise.all([
       getAllEntries(),
       getAllCompanies(),
-      getAllVehicles()
+      getAllVehicles(),
+      getAllRefuels()
     ]);
     setAllEntries(allEntriesData.sort((a, b) => b.date.localeCompare(a.date))); // Ordena decrescente
     setCompanies(allCompanies);
     setVehicles(allVehicles);
+    setRefuels(allRefuels);
   };
 
   useEffect(() => {
@@ -144,15 +148,29 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   };
 
   const calculateFuelCost = (entry: DailyEntry): number => {
-    if (!entry.vehicleId || !entry.kmDriven) return 0;
+    if (!entry.vehicleId || !entry.kmDriven || entry.kmDriven <= 0) return 0;
     const vehicle = vehicles.find(v => v.id === entry.vehicleId);
-    // Supondo um preço de combustível fixo por enquanto.
-    // No futuro, isso pode vir de uma configuração.
-    const FUEL_PRICE = 5.80; 
     if (!vehicle || vehicle.averageConsumption <= 0) return 0;
+
+    // Achar abastecimentos do mesmo mês do registro
+    const entryDate = parseISO(entry.date);
+    const monthStart = format(startOfMonth(entryDate), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(entryDate), 'yyyy-MM-dd');
+    
+    const monthRefuels = refuels.filter(r => r.vehicleId === entry.vehicleId && r.date >= monthStart && r.date <= monthEnd);
+    
+    let avgPricePerLiter = 5.80; // Preço padrão caso não haja abastecimentos no mês
+
+    if (monthRefuels.length > 0) {
+      const totalValue = monthRefuels.reduce((sum, r) => sum + r.value, 0);
+      const totalLiters = monthRefuels.reduce((sum, r) => sum + r.liters, 0);
+      if (totalLiters > 0) {
+        avgPricePerLiter = totalValue / totalLiters;
+      }
+    }
     
     const litersUsed = entry.kmDriven / vehicle.averageConsumption;
-    return litersUsed * FUEL_PRICE;
+    return litersUsed * avgPricePerLiter;
   };
 
   const getCompanyName = (companyId?: string) => companies.find(c => c.id === companyId)?.name || 'N/A';

@@ -23,7 +23,7 @@ interface RunDeliveryDBSchema extends DBSchema {
   daily_entries: {
     key: string;
     value: DailyEntry;
-    indexes: { 'by-date': string };
+    indexes: { 'by-date': string, 'by-vehicle': string };
   };
   costs: {
     key: string;
@@ -33,12 +33,12 @@ interface RunDeliveryDBSchema extends DBSchema {
   refuels: {
     key: string;
     value: Refuel;
-    indexes: { 'by-date': string };
+    indexes: { 'by-date': string, 'by-vehicle': string };
   };
   maintenances: {
     key: string;
     value: Maintenance;
-    indexes: { 'by-date': string };
+    indexes: { 'by-date': string, 'by-vehicle': string };
   };
   goals: {
     key: string; // AAAA-MM
@@ -47,7 +47,7 @@ interface RunDeliveryDBSchema extends DBSchema {
 }
 
 const DB_NAME = 'RunDeliveryDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const getDb = () => {
   return openDB<RunDeliveryDBSchema>(DB_NAME, DB_VERSION, {
@@ -88,6 +88,11 @@ export const getDb = () => {
         if (!db.objectStoreNames.contains('goals')) {
           db.createObjectStore('goals', { keyPath: 'id' });
         }
+      }
+      if (oldVersion < 4) {
+        transaction.objectStore('refuels').createIndex('by-vehicle', 'vehicleId');
+        transaction.objectStore('maintenances').createIndex('by-vehicle', 'vehicleId');
+        transaction.objectStore('daily_entries').createIndex('by-vehicle', 'vehicleId');
       }
     },
   });
@@ -163,16 +168,22 @@ export async function importDbFromJson(jsonData: string) {
   const db = await getDb();
   const data = JSON.parse(jsonData);
   const stores = ['companies', 'vehicles', 'daily_entries', 'costs', 'refuels', 'maintenances', 'goals'] as const;
+  
+  // Limpa os dados antigos e insere os novos dentro de uma única transação
   const tx = db.transaction(stores, 'readwrite');
-
-  for (const storeName of stores) {
-    await tx.objectStore(storeName).clear();
-    if (data[storeName]) {
-      for (const record of data[storeName]) {
-        await tx.objectStore(storeName).put(record);
-      }
-    }
+  try {
+    await Promise.all(stores.map(storeName => {
+      const store = tx.objectStore(storeName);
+      return store.clear().then(() => {
+        if (data[storeName]) {
+          return Promise.all(data[storeName].map((record: any) => store.put(record)));
+        }
+      });
+    }));
+    await tx.done;
+  } catch(e) {
+    console.error('Falha na importação', e);
+    tx.abort();
+    throw e;
   }
-
-  await tx.done;
 }
