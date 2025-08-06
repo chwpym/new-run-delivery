@@ -30,21 +30,25 @@ interface LiveTrackerScreenProps {
 }
 
 export function LiveTrackerScreen({ count, setCount, settings, companies, activeCompanyId, setActiveCompanyId }: LiveTrackerScreenProps) {
-  const [isTracking, setIsTracking] = useState(false);
+  const [status, setStatus] = useState<Status>('Paused');
   const [origin, setOrigin] = useState<Company['baseLocation'] | null>(null);
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isTracking = useMemo(() => status === 'Tracking Active', [status]);
+
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
   const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
 
-  const status: Status = useMemo(() => isTracking ? "Tracking Active" : "Paused", [isTracking]);
   const handleIncrement = () => setCount(c => c + 1);
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
   const processNewPosition = (position: GeolocationPosition) => {
+    // Se o status mudou para ativo (ex: recuperou-se de um erro), atualiza o status
+    if (status !== 'Tracking Active') setStatus('Tracking Active');
+
     const { coords } = position;
     const speed = coords.speed === null ? 0 : coords.speed * 3.6;
     if (speed > 2) { if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; } return; }
@@ -66,7 +70,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
   const handleToggleTracking = () => {
     if (isTracking) {
       if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
-      setIsTracking(false); setOrigin(null); releaseWakeLock();
+      setStatus('Paused'); setOrigin(null); releaseWakeLock();
       if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; }
       return;
     }
@@ -74,12 +78,24 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
     if (!activeCompanyId) { return alert("Selecione uma empresa."); }
     const selectedCompany = companies.find(c => c.id === activeCompanyId);
     if (!selectedCompany?.baseLocation) { return alert("Empresa sem base cadastrada."); }
-    setOrigin(selectedCompany.baseLocation); setIsTracking(true); requestWakeLock();
+    setOrigin(selectedCompany.baseLocation); 
+    setStatus('Tracking Active'); 
+    requestWakeLock();
     watchIdRef.current = navigator.geolocation.watchPosition(processNewPosition, (error) => {
-      console.error("Erro GPS:", error); if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-      setIsTracking(false); releaseWakeLock(); alert(`Erro de GPS: ${error.message}.`);
+      console.error("Erro GPS:", error); 
+      // Não limpa o watchId, permite que o navegador tente recuperar o sinal
+      setStatus('GPS Error');
     }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
   };
+
+  // Limpa tudo ao sair da tela
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+      releaseWakeLock();
+    }
+  }, []);
 
   const StatusDisplay = () => {
     const statusInfo: Record<Status, { icon: JSX.Element; text: string; color: string; }> = { "Paused": { icon: <PauseCircle className="h-4 w-4" />, text: "Pausado", color: "text-muted-foreground" }, "Tracking Active": { icon: <MapPin className="h-4 w-4" />, text: "Rastreamento Ativo", color: "text-primary" }, "GPS Error": { icon: <AlertTriangle className="h-4 w-4" />, text: "Erro de GPS", color: "text-destructive" } };
