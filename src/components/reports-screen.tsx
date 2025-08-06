@@ -31,12 +31,17 @@ const pieChartConfig = {
 } satisfies ChartConfig;
 
 export function ReportsScreen() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+    companyId: string;
+    vehicleId: string;
+  }>({
+    startDate: startOfMonth(new Date()),
+    endDate: endOfMonth(new Date()),
     companyId: 'all',
     vehicleId: 'all',
   });
@@ -47,12 +52,11 @@ export function ReportsScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!date) return;
+      const { startDate, endDate, companyId, vehicleId } = filters;
+      if (!startDate || !endDate) return;
       
-      const start = startOfMonth(date);
-      const end = endOfMonth(date);
-      const startStr = format(start, 'yyyy-MM-dd');
-      const endStr = format(end, 'yyyy-MM-dd');
+      const startStr = format(startDate, 'yyyy-MM-dd');
+      const endStr = format(endDate, 'yyyy-MM-dd');
 
       // Fetch all data once
       const [
@@ -77,25 +81,25 @@ export function ReportsScreen() {
       // Apply filters
       const monthEntries = allEntries.filter(e => {
         const isWithinDate = e.date >= startStr && e.date <= endStr;
-        const companyMatch = filters.companyId === 'all' || e.companyId === filters.companyId;
-        const vehicleMatch = filters.vehicleId === 'all' || e.vehicleId === filters.vehicleId;
+        const companyMatch = companyId === 'all' || e.companyId === companyId;
+        const vehicleMatch = vehicleId === 'all' || e.vehicleId === vehicleId;
         return isWithinDate && companyMatch && vehicleMatch;
       });
       
-      const vehicleFilteredIds = filters.vehicleId === 'all' 
+      const vehicleFilteredIds = vehicleId === 'all' 
         ? allVehicles.map(v => v.id) 
-        : [filters.vehicleId];
+        : [vehicleId];
 
       const monthCosts = allCosts.filter(c => c.date >= startStr && c.date <= endStr); // Costs are not tied to vehicle/company
       const monthRefuels = allRefuels.filter(r => r.date >= startStr && r.date <= endStr && vehicleFilteredIds.includes(r.vehicleId));
       const monthMaintenances = allMaintenances.filter(m => m.date >= startStr && m.date <= endStr && vehicleFilteredIds.includes(m.vehicleId));
 
       // Process bar chart data
-      const daysInMonth = eachDayOfInterval({ start, end });
-      const processedChartData = daysInMonth.map(day => {
+      const daysInInterval = eachDayOfInterval({ start: startDate, end: endDate });
+      const processedChartData = daysInInterval.map(day => {
         const dayStr = format(day, 'yyyy-MM-dd');
         const entryForDay = monthEntries.find(e => e.date === dayStr && !e.isDayOff);
-        return { date: format(day, 'dd'), totalEarned: entryForDay?.totalEarned || 0 };
+        return { date: format(day, 'dd/MM'), totalEarned: entryForDay?.totalEarned || 0 };
       });
       setChartData(processedChartData);
 
@@ -118,12 +122,17 @@ export function ReportsScreen() {
       ].filter(item => item.value > 0));
     };
     fetchData();
-  }, [date, filters]);
+  }, [filters]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
-    setDate(currentDate => {
-      if (!currentDate) return new Date();
-      return direction === 'prev' ? subMonths(currentDate, 1) : addMonths(currentDate, 1)
+    setFilters(currentFilters => {
+      const currentMonth = currentFilters.startDate || new Date();
+      const newMonth = direction === 'prev' ? subMonths(currentMonth, 1) : addMonths(currentMonth, 1);
+      return {
+        ...currentFilters,
+        startDate: startOfMonth(newMonth),
+        endDate: endOfMonth(newMonth),
+      };
     });
   };
 
@@ -135,23 +144,26 @@ export function ReportsScreen() {
                 <div className='flex items-center gap-3 self-start'>
                 <BarChart2 className="h-6 w-6 text-primary" />
                 <div>
-                    <CardTitle>Relatório Mensal</CardTitle>
+                    <CardTitle>Relatório Detalhado</CardTitle>
                     <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
                 </div>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
-                    <div className="w-full">
-                        <DatePicker date={date} setDate={setDate} />
-                    </div>
-                    <div className="flex items-center gap-2 w-full">
-                        <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
-                        <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
-                    </div>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
+                    <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
                 </div>
             </div>
             
             <Card className="p-4 mt-4 bg-card/50">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Data Inicial</Label>
+                  <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d}))} />
+                </div>
+                 <div>
+                  <Label>Data Final</Label>
+                  <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d}))} />
+                </div>
                 <div>
                     <Label>Empresa</Label>
                     <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
@@ -186,14 +198,14 @@ export function ReportsScreen() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
               <Card>
-                <CardHeader><CardTitle>Ganhos Diários - {date ? format(date, 'MMMM yyyy', { locale: ptBR }) : '...'}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Ganhos Diários</CardTitle></CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="w-full h-[300px]">
                     <BarChart accessibilityLayer data={chartData} margin={{ top: 20, left: -20, right: 10, bottom: 0 }}>
                       <CartesianGrid vertical={false} />
                       <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
                       <YAxis tickLine={false} axisLine={false} tickMargin={10} width={80} tickFormatter={(value) => `R$ ${value}`} />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(label) => `${label}/${date ? format(date, 'MM') : ''}`} formatter={(value) => `R$ ${Number(value).toFixed(2)}`}/>} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(label, payload) => `${payload?.[0]?.payload.date}`} formatter={(value) => `R$ ${Number(value).toFixed(2)}`}/>} />
                       <Bar dataKey="totalEarned" fill="var(--color-totalEarned)" radius={4}>
                         <LabelList position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => (value > 0 ? `${value.toFixed(0)}` : '')} />
                       </Bar>
@@ -232,7 +244,7 @@ export function ReportsScreen() {
                   </ChartContainer>
                   ) : (
                     <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                      <p>Nenhuma despesa registrada no mês.</p>
+                      <p>Nenhuma despesa registrada no período.</p>
                     </div>
                   )}
                 </CardContent>
