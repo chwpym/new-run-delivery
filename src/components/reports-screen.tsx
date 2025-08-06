@@ -9,10 +9,10 @@ export function ReportsScreen() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <BarChart2 className="h-6 w-6" />
+            <BarChart2 className="h-6 w-6 text-primary" />
             <div>
               <CardTitle>Relatórios</CardTitle>
-              <CardDescription>Seu histórico de entregas e ganhos.</CardDescription>
+              <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
             </div>
           </div>
         </CardHeader>

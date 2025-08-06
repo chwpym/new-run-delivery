@@ -17,6 +17,7 @@ import type { Company } from '@/types/company';
 import { DailyEntriesScreen } from './daily-entries-screen';
 import { DashboardScreen } from './dashboard-screen';
 import { LiveTrackerScreen } from './live-tracker-screen';
+import { PlaceholderScreen } from './placeholder-screen';
 
 export default function DeliveryTracker() {
   const [isMounted, setIsMounted] = useState(false);
@@ -58,22 +59,45 @@ export default function DeliveryTracker() {
     return <div className="flex h-screen w-screen items-center justify-center bg-background"><Truck className="h-16 w-16 animate-pulse text-primary" /></div>;
   }
 
+  const renderScreen = () => {
+    switch (activeScreen) {
+      case 'dashboard':
+        return <DashboardScreen onNavigate={setActiveScreen} />;
+      case 'rastreador':
+        return <LiveTrackerScreen count={count} setCount={setCount} settings={settings} companies={companies} activeCompanyId={activeCompanyId} setActiveCompanyId={setActiveCompanyId} />;
+      case 'registros':
+        return <DailyEntriesScreen deliveryCount={count} />;
+      case 'relatorios':
+        return <ReportsScreen />;
+      case 'empresas':
+        return <CompaniesScreen />;
+      case 'veiculos':
+        return <VehiclesScreen />;
+      case 'dados':
+        return <DataScreen />;
+      case 'custos':
+        return <PlaceholderScreen title="Custos" description="Gerencie seus custos fixos e variáveis." />;
+      case 'abastecer':
+        return <PlaceholderScreen title="Abastecimento" description="Registre seus abastecimentos para controle de custos." />;
+      case 'manutencao':
+        return <PlaceholderScreen title="Manutenção" description="Acompanhe os serviços de manutenção do seu veículo." />;
+      case 'metas':
+        return <PlaceholderScreen title="Metas" description="Defina e acompanhe suas metas financeiras." />;
+      default:
+        return <DashboardScreen onNavigate={setActiveScreen} />;
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-background text-foreground font-headline">
-      <header className="flex items-center justify-between p-4">
+      <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2"><MainMenu activeScreen={activeScreen} setActiveScreen={setActiveScreen} /><h1 className="text-xl font-bold">RunDelivery</h1></div>
         <div className="flex items-center gap-1"><ThemeToggle /><Button onClick={() => setIsResetDialogOpen(true)} variant="ghost" size="icon"><RotateCcw className="h-5 w-5" /></Button><SettingsSheet settings={settings} setSettings={setSettings} /></div>
       </header>
 
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        {activeScreen === 'dashboard' && <DashboardScreen onNavigate={setActiveScreen} />}
-        {activeScreen === 'rastreador' && <LiveTrackerScreen count={count} setCount={setCount} settings={settings} companies={companies} activeCompanyId={activeCompanyId} setActiveCompanyId={setActiveCompanyId} />}
-        {activeScreen === 'registros' && <DailyEntriesScreen deliveryCount={count} />}
-        {activeScreen === 'reports' && <ReportsScreen />}
-        {activeScreen === 'veiculos' && <VehiclesScreen />}
-        {activeScreen === 'empresas' && <CompaniesScreen />}
-        {activeScreen === 'dados' && <DataScreen />}
-      </div>
+      <main className="flex-1 overflow-y-auto">
+        {renderScreen()}
+      </main>
 
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Zerar contador?</AlertDialogTitle><AlertDialogDescription>Esta ação irá zerar o contador de entregas de hoje.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={confirmReset}>Sim, zerar</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
