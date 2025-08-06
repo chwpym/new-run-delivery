@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 import type { DailyEntry } from '@/types/dailyEntry';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
+import { DatePicker } from './ui/date-picker';
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ interface AddEntryModalProps {
 
 export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies, vehicles, deliveryCount }: AddEntryModalProps) {
   // Estados do Formulário
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [isDayOff, setIsDayOff] = useState(false);
   const [companyId, setCompanyId] = useState<string | undefined>(undefined);
   const [vehicleId, setVehicleId] = useState<string | undefined>(undefined);
@@ -61,7 +62,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
     if (isOpen) {
       if (entryToEdit) {
         // Modo Edição
-        setDate(entryToEdit.date);
+        setDate(parseISO(entryToEdit.date));
         setIsDayOff(entryToEdit.isDayOff);
         setCompanyId(entryToEdit.companyId);
         setVehicleId(entryToEdit.vehicleId);
@@ -73,8 +74,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         setEndKm(String(entryToEdit.endKm || ''));
       } else {
         // Modo Adição
-        const today = format(new Date(), 'yyyy-MM-dd');
-        setDate(today);
+        setDate(new Date());
         setIsDayOff(false);
         setDeliveriesCount(String(deliveryCount || 0)); // Usa o contador da tela principal
         // Tenta preencher com base na empresa ativa
@@ -125,9 +125,13 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
 
   const handleSubmit = () => {
+    if (!date) return alert('Data é obrigatória');
+    
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    
     const entryData: DailyEntry = {
-      id: date,
-      date,
+      id: formattedDate,
+      date: formattedDate,
       isDayOff,
       companyId: isDayOff ? undefined : companyId,
       vehicleId: isDayOff ? undefined : vehicleId,
@@ -151,7 +155,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         <DialogHeader>
           <DialogTitle>{entryToEdit ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
           <DialogDescription>
-            {entryToEdit ? `Modificando registro do dia ${format(parseISO(date), 'dd/MM/yyyy')}` : `Criando registro para o dia ${format(parseISO(date), 'dd/MM/yyyy')}`}
+            {entryToEdit && date ? `Modificando registro do dia ${format(date, 'dd/MM/yyyy')}` : (date ? `Criando registro para o dia ${format(date, 'dd/MM/yyyy')}`: 'Selecione uma data')}
           </DialogDescription>
         </DialogHeader>
 
@@ -160,7 +164,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="date">Data</Label>
-                    <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!!entryToEdit} />
+                    <DatePicker date={date} setDate={setDate} />
                 </div>
                  <div className="flex items-end pb-2 space-x-2">
                     <Checkbox id="isDayOff" checked={isDayOff} onCheckedChange={(checked) => setIsDayOff(Boolean(checked))} />

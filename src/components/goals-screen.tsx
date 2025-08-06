@@ -21,18 +21,21 @@ export function GoalsScreen() {
 
   const goalId = format(date, 'yyyy-MM');
 
-  const fetchData = useCallback(async () => {
-    const fetchedGoal = await getGoal(goalId);
-    setGoal(fetchedGoal || { id: goalId, value: 0 });
-    setGoalValue(String(fetchedGoal?.value || ''));
+  const fetchData = useCallback(() => {
+    const fetch = async () => {
+      const fetchedGoal = await getGoal(goalId);
+      setGoal(fetchedGoal || { id: goalId, value: 0 });
+      setGoalValue(String(fetchedGoal?.value || ''));
 
-    const allEntries = await getAllEntries();
-    const start = format(startOfMonth(date), 'yyyy-MM-dd');
-    const end = format(endOfMonth(date), 'yyyy-MM-dd');
-    const monthly = allEntries
-      .filter(e => e.date >= start && e.date <= end && !e.isDayOff)
-      .reduce((sum, e) => sum + (e.totalEarned || 0), 0);
-    setMonthlyEarnings(monthly);
+      const allEntries = await getAllEntries();
+      const start = format(startOfMonth(date), 'yyyy-MM-dd');
+      const end = format(endOfMonth(date), 'yyyy-MM-dd');
+      const monthly = allEntries
+        .filter(e => e.date >= start && e.date <= end && !e.isDayOff)
+        .reduce((sum, e) => sum + (e.totalEarned || 0), 0);
+      setMonthlyEarnings(monthly);
+    };
+    fetch();
   }, [date, goalId]);
 
   useEffect(() => {
@@ -59,25 +62,27 @@ export function GoalsScreen() {
     <div className="p-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className='flex items-center gap-3'>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className='flex items-center gap-3 self-start'>
               <Target className="h-6 w-6 text-primary" />
               <div>
                 <CardTitle>Metas Financeiras</CardTitle>
                 <CardDescription>Defina e acompanhe suas metas de ganhos mensais.</CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => handleMonthChange('prev')}>Anterior</Button>
-              <span className="font-bold w-32 text-center">{format(date, 'MMMM/yyyy', { locale: ptBR })}</span>
-              <Button variant="outline" onClick={() => handleMonthChange('next')}>Próximo</Button>
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+              <span className="font-bold w-full md:w-32 text-center text-lg">{format(date, 'MMMM/yyyy', { locale: ptBR })}</span>
+              <div className="flex items-center gap-2 w-full">
+                <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
+                <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
+              </div>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <Card className="p-4">
             <div className="flex flex-col sm:flex-row items-end gap-4">
-              <div className="flex-grow space-y-2">
+              <div className="flex-grow space-y-2 w-full">
                 <Label htmlFor="goalValue">Definir Meta de Ganhos para o Mês (R$)</Label>
                 <Input
                   id="goalValue"
@@ -87,7 +92,7 @@ export function GoalsScreen() {
                   placeholder="Ex: 3000.00"
                 />
               </div>
-              <Button onClick={handleSaveGoal}>Salvar Meta</Button>
+              <Button onClick={handleSaveGoal} className="w-full sm:w-auto">Salvar Meta</Button>
             </div>
           </Card>
           

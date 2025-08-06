@@ -106,18 +106,20 @@ export function ReportsScreen() {
     <div className="p-4 space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className='flex items-center gap-3'>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className='flex items-center gap-3 self-start'>
               <BarChart2 className="h-6 w-6 text-primary" />
               <div>
                 <CardTitle>Relatório Mensal</CardTitle>
                 <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => handleMonthChange('prev')}>Anterior</Button>
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
               <DatePicker date={date} setDate={setDate} />
-              <Button variant="outline" onClick={() => handleMonthChange('next')}>Próximo</Button>
+              <div className="flex items-center gap-2 w-full">
+                <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
+                <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
+              </div>
             </div>
           </div>
         </CardHeader>
