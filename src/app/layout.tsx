@@ -14,6 +14,7 @@ const ptSans = PT_Sans({
 export const metadata: Metadata = {
   title: 'RunDelivery',
   description: 'App for delivery drivers',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -23,9 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-      </head>
+      <head />
       <body className={`${ptSans.variable} font-body antialiased`}>
         <ThemeProvider
           attribute="class"
