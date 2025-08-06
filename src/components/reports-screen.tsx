@@ -14,13 +14,13 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Pie, PieChart, Label } from "recharts";
 import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances } from '@/lib/db';
 import type { DailyEntry, Cost, Refuel, Maintenance } from '@/types';
-import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, getMonth, getYear } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, getMonth, getYear, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const chartConfig = {
-  totalEarned: { label: "Ganhos (R$)", color: "hsl(var(--chart-1))" },
+  totalEarned: { label: "Ganhos (R$)", color: "hsl(var(--primary))" },
 } satisfies ChartConfig;
 
 const pieChartConfig = {
@@ -30,7 +30,7 @@ const pieChartConfig = {
 } satisfies ChartConfig;
 
 export function ReportsScreen() {
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [costs, setCosts] = useState<Cost[]>([]);
   const [refuels, setRefuels] = useState<Refuel[]>([]);
@@ -42,6 +42,8 @@ export function ReportsScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!date) return;
+
       const start = startOfMonth(date);
       const end = endOfMonth(date);
       const startStr = format(start, 'yyyy-MM-dd');
@@ -94,7 +96,10 @@ export function ReportsScreen() {
   }, [date]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
-    setDate(currentDate => subMonths(currentDate, direction === 'prev' ? 1 : -1));
+    setDate(currentDate => {
+      if (!currentDate) return new Date();
+      return direction === 'prev' ? subMonths(currentDate, 1) : addMonths(currentDate, 1)
+    });
   };
 
   return (
@@ -126,14 +131,14 @@ export function ReportsScreen() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
               <Card>
-                <CardHeader><CardTitle>Ganhos Diários - {format(date, 'MMMM yyyy', { locale: ptBR })}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Ganhos Diários - {date ? format(date, 'MMMM yyyy', { locale: ptBR }) : '...'}</CardTitle></CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="w-full h-[300px]">
                     <BarChart accessibilityLayer data={chartData} margin={{ top: 20, left: -20, right: 10, bottom: 0 }}>
                       <CartesianGrid vertical={false} />
                       <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
                       <YAxis tickLine={false} axisLine={false} tickMargin={10} width={80} tickFormatter={(value) => `R$ ${value}`} />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(label) => `${label}/${format(date, 'MM')}`} formatter={(value) => `R$ ${Number(value).toFixed(2)}`}/>} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(label) => `${label}/${date ? format(date, 'MM') : ''}`} formatter={(value) => `R$ ${Number(value).toFixed(2)}`}/>} />
                       <Bar dataKey="totalEarned" fill="var(--color-totalEarned)" radius={4}>
                         <LabelList position="top" offset={8} className="fill-foreground text-xs" formatter={(value: number) => (value > 0 ? `${value.toFixed(0)}` : '')} />
                       </Bar>
