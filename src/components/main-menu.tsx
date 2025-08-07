@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
   Building, Car, LogOut, MapPin, HandCoins, Settings
@@ -20,16 +20,12 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
 
   const handleNavigation = (screen: string) => {
     setActiveScreen(screen);
-    // Não fecha o menu se estiver abrindo/fechando o accordion
-    if (screen !== 'configuracoes-trigger') {
-      setIsOpen(false);
-    }
+    setIsOpen(false);
   };
 
   const navigate = (screen: string) => {
     if (screen === 'reset-session') {
       setActiveScreen('reset-session');
-      setIsOpen(false);
     } else {
       handleNavigation(screen);
     }
@@ -45,9 +41,6 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
       <SheetContent side="left" className="w-[280px] flex flex-col p-0">
         <SheetHeader className="p-6 pb-0">
           <SheetTitle className="text-left">Menu Principal</SheetTitle>
-          <SheetDescription className="sr-only">
-            Navegação principal do aplicativo. Use os botões para acessar as diferentes telas.
-          </SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col justify-between overflow-y-auto">
           <nav className="mt-8 flex flex-col gap-2 px-4">
@@ -98,11 +91,11 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
           <div className="p-4">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1" className="border-b-0">
-                <AccordionTrigger className="p-0 hover:no-underline">
-                   <Button variant={['empresas', 'veiculos'].includes(activeScreen) ? 'secondary' : 'ghost'} className="w-full justify-start text-base p-6">
-                      <Settings className="mr-3 h-5 w-5" />
-                      Configurações
-                    </Button>
+                <AccordionTrigger
+                   className="p-6 justify-start text-base hover:bg-accent rounded-md w-full"
+                >
+                   <Settings className="mr-3 h-5 w-5" />
+                   Configurações
                 </AccordionTrigger>
                 <AccordionContent className="pb-0 pl-8 space-y-2">
                    <Button variant={activeScreen === 'empresas' ? 'secondary' : 'ghost'} className="w-full justify-start text-base p-6" onClick={() => navigate('empresas')}>
