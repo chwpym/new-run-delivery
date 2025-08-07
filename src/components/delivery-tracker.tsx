@@ -22,6 +22,7 @@ import { CostsScreen } from './costs-screen';
 import { RefuelsScreen } from './refuels-screen';
 import { MaintenancesScreen } from './maintenances-screen';
 import { GoalsScreen } from './goals-screen';
+import { FixedPaymentsScreen } from './fixed-payments-screen';
 
 
 export default function DeliveryTracker() {
@@ -86,6 +87,8 @@ export default function DeliveryTracker() {
                 />;
       case 'registros':
         return <DailyEntriesScreen deliveryCount={count} />;
+      case 'recebimentos':
+        return <FixedPaymentsScreen />;
       case 'relatorios':
         return <ReportsScreen />;
       case 'empresas':

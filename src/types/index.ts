@@ -6,3 +6,4 @@ export type { Cost, CostCategory } from './cost';
 export type { Refuel } from './refuel';
 export type { Maintenance } from './maintenance';
 export type { Goal } from './goal';
+export type { FixedPayment } from './fixedPayment';

@@ -227,7 +227,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                 </div>
               </div>
               <div className='mt-4 p-2 border rounded-md'>
-                <h4 className="text-md font-medium mb-2">Resumo Financeiro</h4>
+                <h4 className="text-md font-medium mb-2">Resumo Financeiro do Dia</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="space-y-1">
                         <p>Diária/Fixo: <span className='font-bold'>R$ {parseFloat(dailyRate).toFixed(2)}</span></p>
@@ -235,7 +235,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                         <p>Gorjetas: <span className='font-bold'>R$ {parseFloat(tips || '0').toFixed(2)}</span></p>
                     </div>
                     <div className="flex flex-col items-end justify-center">
-                        <p className='text-right text-lg'>Total do Dia:</p>
+                        <p className='text-right text-lg'>Total Ganhos:</p>
                         <p className='font-bold text-2xl text-primary'>R$ {totalEarned.toFixed(2)}</p>
                     </div>
                 </div>

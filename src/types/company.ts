@@ -6,6 +6,5 @@ export type Company = {
   baseLocation?: { latitude: number; longitude: number; };
   paymentType: PaymentType;
   dailyRate?: number; // Valor da diária
-  fixedValue?: number; // Valor fixo mensal
   deliveryFee: number; // Valor padrão por entrega
 };

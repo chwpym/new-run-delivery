@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
-  Building, Car, LogOut, MapPin
+  Building, Car, LogOut, MapPin, HandCoins
 } from "lucide-react";
 
 type MainMenuProps = {
@@ -50,6 +50,10 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
             <Button variant={activeScreen === 'registros' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('registros')}>
               <ListChecks className="mr-3 h-5 w-5" />
               Registros
+            </Button>
+             <Button variant={activeScreen === 'recebimentos' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('recebimentos')}>
+              <HandCoins className="mr-3 h-5 w-5" />
+              Recebimentos
             </Button>
             <Button variant={activeScreen === 'custos' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => handleNavigation('custos')}>
               <DollarSign className="mr-3 h-5 w-5" />

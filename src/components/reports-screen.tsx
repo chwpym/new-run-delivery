@@ -12,8 +12,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Pie, PieChart, Label as RechartsLabel } from "recharts";
-import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getAllCompanies, getAllVehicles } from '@/lib/db';
-import type { DailyEntry, Cost, Refuel, Maintenance, Company, Vehicle } from '@/types';
+import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getAllCompanies, getAllVehicles, getAllFixedPayments } from '@/lib/db';
+import type { DailyEntry, Cost, Refuel, Maintenance, Company, Vehicle, FixedPayment } from '@/types';
 import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePicker } from './ui/date-picker';
@@ -65,7 +65,8 @@ export function ReportsScreen() {
         allRefuels, 
         allMaintenances, 
         allCompanies, 
-        allVehicles
+        allVehicles,
+        allFixedPayments,
       ] = await Promise.all([
         getAllEntries(),
         getAllCosts(),
@@ -73,6 +74,7 @@ export function ReportsScreen() {
         getAllMaintenances(),
         getAllCompanies(),
         getAllVehicles(),
+        getAllFixedPayments(),
       ]);
 
       setCompanies(allCompanies);
@@ -84,6 +86,12 @@ export function ReportsScreen() {
         const companyMatch = companyId === 'all' || e.companyId === companyId;
         const vehicleMatch = vehicleId === 'all' || e.vehicleId === vehicleId;
         return isWithinDate && companyMatch && vehicleMatch;
+      });
+
+      const monthFixedPayments = allFixedPayments.filter(p => {
+        const isWithinDate = p.date >= startStr && p.date <= endStr;
+        const companyMatch = companyId === 'all' || p.companyId === companyId;
+        return isWithinDate && companyMatch;
       });
       
       const vehicleFilteredIds = vehicleId === 'all' 
@@ -105,7 +113,10 @@ export function ReportsScreen() {
 
       // Calculate stats
       const workingDays = monthEntries.filter(e => !e.isDayOff);
-      const gross = workingDays.reduce((sum, e) => sum + (e.totalEarned || 0), 0);
+      const dailyGross = workingDays.reduce((sum, e) => sum + (e.totalEarned || 0), 0);
+      const fixedGross = monthFixedPayments.reduce((sum, p) => sum + p.value, 0);
+      const gross = dailyGross + fixedGross;
+
       const costValue = monthCosts.reduce((sum, c) => sum + c.value, 0);
       const refuelValue = monthRefuels.reduce((sum, r) => sum + r.value, 0);
       const maintenanceValue = monthMaintenances.reduce((sum, m) => sum + m.value, 0);

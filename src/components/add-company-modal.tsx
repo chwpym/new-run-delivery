@@ -19,7 +19,6 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
   const [name, setName] = useState('');
   const [paymentType, setPaymentType] = useState<PaymentType>('daily');
   const [dailyRate, setDailyRate] = useState('');
-  const [fixedValue, setFixedValue] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
 
   useEffect(() => {
@@ -28,14 +27,12 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
       setName(companyToEdit.name);
       setPaymentType(companyToEdit.paymentType || 'daily'); // Garante um valor padrão
       setDailyRate(String(companyToEdit.dailyRate || '')); // Converte para string, ou usa '' se for nulo/undefined
-      setFixedValue(String(companyToEdit.fixedValue || '')); // Converte para string, ou usa '' se for nulo/undefined
       setDeliveryFee(String(companyToEdit.deliveryFee || '')); // Converte para string, ou usa '' se for nulo/undefined
     } else if (isOpen) {
       // Modo de Adição: Limpa todos os campos
       setName('');
       setPaymentType('daily');
       setDailyRate('');
-      setFixedValue('');
       setDeliveryFee('');
     }
   }, [companyToEdit, isOpen]);
@@ -51,7 +48,6 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
         name,
         paymentType,
         dailyRate: paymentType === 'daily' ? parseFloat(dailyRate) || undefined : undefined,
-        fixedValue: paymentType === 'fixed' ? parseFloat(fixedValue) || undefined : undefined,
         deliveryFee: parseFloat(deliveryFee),
       },
       companyToEdit?.id
@@ -85,7 +81,7 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="fixed" id="fixed" />
-                <Label htmlFor="fixed">Fixo Mensal + Entregas</Label>
+                <Label htmlFor="fixed">Apenas Pagamento Fixo (Lançado Manualmente)</Label>
               </div>
             </RadioGroup>
           </div>
@@ -95,12 +91,6 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
             <div className="space-y-2">
               <Label htmlFor="dailyRate">Valor da Diária (R$)</Label>
               <Input id="dailyRate" type="number" value={dailyRate} onChange={(e) => setDailyRate(e.target.value)} placeholder="Ex: 50.00" />
-            </div>
-          )}
-          {paymentType === 'fixed' && (
-            <div className="space-y-2">
-              <Label htmlFor="fixedValue">Valor Fixo Mensal (R$)</Label>
-              <Input id="fixedValue" type="number" value={fixedValue} onChange={(e) => setFixedValue(e.target.value)} placeholder="Ex: 1200.00" />
             </div>
           )}
 

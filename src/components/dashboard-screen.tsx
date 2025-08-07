@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, MapPin, PlusCircle, TrendingUp, Target, TrendingDown } from "lucide-react";
-import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getGoal } from '@/lib/db';
+import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getGoal, getAllFixedPayments } from '@/lib/db';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from './ui/progress';
@@ -24,16 +24,22 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
       const goalId = format(now, 'yyyy-MM');
       
-      const [entries, costs, refuels, maintenances, goal] = await Promise.all([
+      const [entries, costs, refuels, maintenances, goal, fixedPayments] = await Promise.all([
         getAllEntries(),
         getAllCosts(),
         getAllRefuels(),
         getAllMaintenances(),
         getGoal(goalId),
+        getAllFixedPayments(),
       ]);
       
       const monthlyEntries = entries.filter(e => e.date >= monthStart && e.date <= monthEnd && !e.isDayOff);
-      const gross = monthlyEntries.reduce((sum, entry) => sum + (entry.totalEarned || 0), 0);
+      const dailyGross = monthlyEntries.reduce((sum, entry) => sum + (entry.totalEarned || 0), 0);
+
+      const monthlyFixedPayments = fixedPayments.filter(p => p.date >= monthStart && p.date <= monthEnd);
+      const fixedGross = monthlyFixedPayments.reduce((sum, p) => sum + p.value, 0);
+
+      const gross = dailyGross + fixedGross;
 
       const monthlyCosts = costs.filter(c => c.date >= monthStart && c.date <= monthEnd).reduce((s, c) => s + c.value, 0);
       const monthlyRefuels = refuels.filter(r => r.date >= monthStart && r.date <= monthEnd).reduce((s, r) => s + r.value, 0);
