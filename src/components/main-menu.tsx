@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
   Building, Car, LogOut, MapPin, HandCoins
@@ -17,7 +17,12 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleNavigation = (screen: string) => {
-    setActiveScreen(screen);
+    if (screen === 'reset-session') {
+        localStorage.clear();
+        window.location.reload();
+    } else {
+        setActiveScreen(screen);
+    }
     setIsOpen(false); // Fecha o menu após a seleção
   };
 
