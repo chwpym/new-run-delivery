@@ -1,3 +1,4 @@
+// src/components/main-menu.tsx
 "use client";
 
 import { useState } from 'react';
@@ -5,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
-  Building, Car, LogOut, MapPin, HandCoins
+  Building, Car, LogOut, MapPin, HandCoins, Settings
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 type MainMenuProps = {
   activeScreen: string;
@@ -18,17 +20,16 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
 
   const handleNavigation = (screen: string) => {
     setActiveScreen(screen);
-    setIsOpen(false); // Fecha o menu após a seleção
-  };
-
-  const handleResetSession = () => {
-    localStorage.clear();
-    window.location.reload();
+    // Não fecha o menu se estiver abrindo/fechando o accordion
+    if (screen !== 'configuracoes-trigger') {
+      setIsOpen(false);
+    }
   };
 
   const navigate = (screen: string) => {
     if (screen === 'reset-session') {
-      handleResetSession();
+      setActiveScreen('reset-session');
+      setIsOpen(false);
     } else {
       handleNavigation(screen);
     }
@@ -41,15 +42,15 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] flex flex-col">
-        <SheetHeader>
+      <SheetContent side="left" className="w-[280px] flex flex-col p-0">
+        <SheetHeader className="p-6 pb-0">
           <SheetTitle className="text-left">Menu Principal</SheetTitle>
           <SheetDescription className="sr-only">
             Navegação principal do aplicativo. Use os botões para acessar as diferentes telas.
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col justify-between overflow-y-auto">
-          <nav className="mt-8 flex flex-col gap-2">
+          <nav className="mt-8 flex flex-col gap-2 px-4">
             {/* Itens Principais */}
             <Button variant={activeScreen === 'dashboard' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('dashboard')}>
               <Home className="mr-3 h-5 w-5" />
@@ -59,7 +60,6 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
               <MapPin className="mr-3 h-5 w-5" />
               Rastreador
             </Button>
-
             <Button variant={activeScreen === 'registros' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('registros')}>
               <ListChecks className="mr-3 h-5 w-5" />
               Registros
@@ -94,23 +94,32 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
             </Button>
           </nav>
 
-          {/* Seção do Rodapé */}
-          <div>
-            <hr className="my-4 border-border" />
-            <nav className="flex flex-col gap-2">
-              <Button variant={activeScreen === 'empresas' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('empresas')}>
-                <Building className="mr-3 h-5 w-5" />
-                Gerenciar Empresas
-              </Button>
-              <Button variant={activeScreen === 'veiculos' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('veiculos')}>
-                <Car className="mr-3 h-5 w-5" />
-                Gerenciar Veículos
-              </Button>
-              <Button variant="ghost" className="justify-start text-base p-6 text-destructive hover:text-destructive" onClick={() => navigate('reset-session')}>
-                <LogOut className="mr-3 h-5 w-5" />
-                Reiniciar Sessão
-              </Button>
-            </nav>
+          {/* Seção do Rodapé com Configurações e Reset */}
+          <div className="p-4">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1" className="border-b-0">
+                <AccordionTrigger className="p-0 hover:no-underline">
+                   <Button variant={['empresas', 'veiculos'].includes(activeScreen) ? 'secondary' : 'ghost'} className="w-full justify-start text-base p-6">
+                      <Settings className="mr-3 h-5 w-5" />
+                      Configurações
+                    </Button>
+                </AccordionTrigger>
+                <AccordionContent className="pb-0 pl-8 space-y-2">
+                   <Button variant={activeScreen === 'empresas' ? 'secondary' : 'ghost'} className="w-full justify-start text-base p-6" onClick={() => navigate('empresas')}>
+                    <Building className="mr-3 h-5 w-5" />
+                    Gerenciar Empresas
+                  </Button>
+                  <Button variant={activeScreen === 'veiculos' ? 'secondary' : 'ghost'} className="w-full justify-start text-base p-6" onClick={() => navigate('veiculos')}>
+                    <Car className="mr-3 h-5 w-5" />
+                    Gerenciar Veículos
+                  </Button>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+             <Button variant="ghost" className="w-full justify-start text-base p-6 text-destructive hover:text-destructive" onClick={() => navigate('reset-session')}>
+              <LogOut className="mr-3 h-5 w-5" />
+              Reiniciar Sessão
+            </Button>
           </div>
         </div>
       </SheetContent>
