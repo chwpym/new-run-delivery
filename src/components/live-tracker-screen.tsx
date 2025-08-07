@@ -4,11 +4,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle } from "lucide-react";
+import { Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle, BookCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Settings, Status } from '@/types';
+import type { Settings, Status, DailyEntry, Vehicle } from '@/types';
 import type { Company } from '@/types/company';
 import { playErrorSound, playSuccessSound, vibrateError, vibrateSuccess } from '@/lib/alerts';
+import { AddEntryModal } from './add-entry-modal';
+import { getEntryById, saveDailyEntry } from '@/lib/db';
+import { format } from 'date-fns';
 
 
 function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coord2: {latitude: number, longitude: number}) {
@@ -27,17 +30,21 @@ interface LiveTrackerScreenProps {
   setCount: (fn: (c: number) => number) => void;
   settings: Settings;
   companies: Company[];
+  vehicles: Vehicle[];
   activeCompanyId: string | null;
   setActiveCompanyId: (id: string | null) => void;
 }
 
-export function LiveTrackerScreen({ count, setCount, settings, companies, activeCompanyId, setActiveCompanyId }: LiveTrackerScreenProps) {
+export function LiveTrackerScreen({ count, setCount, settings, companies, vehicles, activeCompanyId, setActiveCompanyId }: LiveTrackerScreenProps) {
   const [status, setStatus] = useState<Status>('Paused');
   const [origin, setOrigin] = useState<Company['baseLocation'] | null>(null);
   const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
 
   const isTracking = useMemo(() => status === 'Tracking Active', [status]);
 
@@ -52,9 +59,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
   const processNewPosition = (position: GeolocationPosition) => {
-    // Se o status mudou para ativo (ex: recuperou-se de um erro), atualiza o status
     if (status !== 'Tracking Active') setStatus('Tracking Active');
-
     const { coords } = position;
     const speed = coords.speed === null ? 0 : coords.speed * 3.6;
     if (speed > 2) { if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; } return; }
@@ -89,14 +94,43 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
     requestWakeLock();
     watchIdRef.current = navigator.geolocation.watchPosition(processNewPosition, (error) => {
       console.error("Erro GPS:", error); 
-      // Não limpa o watchId, permite que o navegador tente recuperar o sinal
       setStatus('GPS Error');
       playErrorSound();
       vibrateError();
     }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
   };
+  
+  const handleEndDay = async () => {
+    if (isTracking) handleToggleTracking(); // Para o rastreamento se estiver ativo
+    
+    const todayId = format(new Date(), 'yyyy-MM-dd');
+    let entry = await getEntryById(todayId);
+    
+    // Se não houver registro, cria um novo objeto. Se houver, usa o existente.
+    if (entry) {
+        entry.deliveriesCount = count; // Atualiza o contador de entregas
+    } else {
+        entry = {
+            id: todayId,
+            date: todayId,
+            isDayOff: false,
+            companyId: activeCompanyId || undefined,
+            deliveriesCount: count,
+        }
+    }
+    setEntryToEdit(entry);
+    setIsEntryModalOpen(true);
+  };
 
-  // Limpa tudo ao sair da tela
+  const handleSaveEntry = async (entryData: DailyEntry) => {
+    await saveDailyEntry(entryData);
+    setEntryToEdit(null); // Limpa o estado
+    setIsEntryModalOpen(false); // Fecha o modal
+    // Pode ser útil resetar o contador após salvar
+    setCount(() => 0); 
+  };
+
+
   useEffect(() => {
     return () => {
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
@@ -113,13 +147,44 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, active
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center gap-6 p-4 text-center h-full">
-        <div className="w-full max-w-xs"><Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}><SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger><SelectContent>{companies.length > 0 ? companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <div className="p-2 text-sm text-muted-foreground">Nenhuma empresa.</div>}</SelectContent></Select></div>
-        <Card className="w-full max-w-xs shadow-lg bg-card"><CardContent className="p-6"><p className="text-sm text-muted-foreground">Entregas de Hoje</p><p className="text-8xl font-bold tracking-tighter text-primary">{count}</p></CardContent></Card>
-        <div className="flex w-full max-w-xs gap-4"><Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement}><Minus className="h-5 w-5 mr-2" /> -1</Button><Button size="lg" className="flex-1" onClick={handleIncrement}><Plus className="h-5 w-5 mr-2" /> +1</Button></div>
-        <StatusDisplay />
+      <div className="flex flex-col items-center justify-between p-4 h-full">
+        <div className="w-full max-w-xs space-y-6 text-center">
+            <Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger>
+                <SelectContent>{companies.length > 0 ? companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <div className="p-2 text-sm text-muted-foreground">Nenhuma empresa.</div>}</SelectContent>
+            </Select>
+            <Card className="w-full max-w-xs shadow-lg bg-card mx-auto">
+                <CardContent className="p-6">
+                    <p className="text-sm text-muted-foreground">Entregas de Hoje</p>
+                    <p className="text-8xl font-bold tracking-tighter text-primary">{count}</p>
+                </CardContent>
+            </Card>
+            <div className="flex w-full max-w-xs gap-4">
+                <Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement}><Minus className="h-5 w-5 mr-2" /> -1</Button>
+                <Button size="lg" className="flex-1" onClick={handleIncrement}><Plus className="h-5 w-5 mr-2" /> +1</Button>
+            </div>
+            <StatusDisplay />
+        </div>
+
+        <div className="w-full max-w-xs space-y-2 mt-auto">
+            <Button size="lg" className="w-full h-14 text-lg font-bold" onClick={handleEndDay} variant="secondary">
+                <BookCheck className="h-6 w-6 mr-3" /> Encerrar Dia e Registrar
+            </Button>
+            <Button size="lg" className="w-full h-16 text-lg font-bold" onClick={handleToggleTracking} variant={isTracking ? "destructive" : "default"}>
+                {isTracking ? <><Square className="h-6 w-6 mr-3" /> Parar Rota</> : <><Play className="h-6 w-6 mr-3" /> Iniciar Rota</>}
+            </Button>
+        </div>
       </div>
-      <footer className="p-4 border-t mt-auto"><Button size="lg" className="w-full h-16 text-lg font-bold" onClick={handleToggleTracking} variant={isTracking ? "destructive" : "default"}>{isTracking ? <><Square className="h-6 w-6 mr-3" /> Parar Rota</> : <><Play className="h-6 w-6 mr-3" /> Iniciar Rota</>}</Button></footer>
+
+       <AddEntryModal
+        isOpen={isEntryModalOpen}
+        onClose={() => setIsEntryModalOpen(false)}
+        onSave={handleSaveEntry}
+        entryToEdit={entryToEdit}
+        companies={companies}
+        vehicles={vehicles}
+        deliveryCount={count}
+      />
     </>
   );
 }

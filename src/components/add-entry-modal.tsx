@@ -1,17 +1,19 @@
+// src/components/add-entry-modal.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import type { DailyEntry } from '@/types/dailyEntry';
 import type { Company } from '@/types/company';
 import type { Vehicle } from '@/types/vehicle';
 import { DatePicker } from './ui/date-picker';
+import { getEntryById } from '@/lib/db';
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -59,36 +61,44 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
 
   // Popula o formulário ao abrir para edição ou novo registro
   useEffect(() => {
-    if (isOpen) {
-      if (entryToEdit) {
-        // Modo Edição
-        setDate(parseISO(entryToEdit.date));
-        setIsDayOff(entryToEdit.isDayOff);
-        setCompanyId(entryToEdit.companyId);
-        setVehicleId(entryToEdit.vehicleId);
-        setDeliveriesCount(String(entryToEdit.deliveriesCount || ''));
-        setDailyRate(String(entryToEdit.dailyRate || ''));
-        setDeliveryFee(String(entryToEdit.deliveryFee || ''));
-        setTips(String(entryToEdit.tips || ''));
-        setStartKm(String(entryToEdit.startKm || ''));
-        setEndKm(String(entryToEdit.endKm || ''));
-      } else {
-        // Modo Adição
-        setDate(new Date());
-        setIsDayOff(false);
-        setDeliveriesCount(String(deliveryCount || 0)); // Usa o contador da tela principal
-        // Tenta preencher com base na empresa ativa
-        if (companies.length > 0) {
-          const defaultCompany = companies[0];
-          setCompanyId(defaultCompany.id);
+    const populateForm = async () => {
+        if (entryToEdit) {
+            // Modo Edição
+            setDate(parseISO(entryToEdit.date));
+            setIsDayOff(entryToEdit.isDayOff);
+            setCompanyId(entryToEdit.companyId);
+            setVehicleId(entryToEdit.vehicleId);
+            // Se o modal for aberto a partir do rastreador, ele já vem com a contagem. Senão, usa a do registro.
+            setDeliveriesCount(String(entryToEdit.deliveriesCount || deliveryCount || ''));
+            setDailyRate(String(entryToEdit.dailyRate || ''));
+            setDeliveryFee(String(entryToEdit.deliveryFee || ''));
+            setTips(String(entryToEdit.tips || ''));
+            setStartKm(String(entryToEdit.startKm || ''));
+            setEndKm(String(entryToEdit.endKm || ''));
         } else {
-          setCompanyId(undefined);
+            // Modo Adição
+            const today = new Date();
+            setDate(today);
+            setIsDayOff(false);
+            setDeliveriesCount(String(deliveryCount || 0));
+            setCompanyId(companies.length > 0 ? companies[0].id : undefined);
+            setVehicleId(vehicles.length > 0 ? vehicles[0].id : undefined);
+            setTips('');
+            setEndKm('');
+
+            // Tenta buscar o KM final do dia anterior
+            const yesterdayId = format(subDays(today, 1), 'yyyy-MM-dd');
+            const yesterdayEntry = await getEntryById(yesterdayId);
+            if (yesterdayEntry && yesterdayEntry.endKm) {
+              setStartKm(String(yesterdayEntry.endKm));
+            } else {
+              setStartKm('');
+            }
         }
-        setVehicleId(vehicles.length > 0 ? vehicles[0].id : undefined);
-        setTips('');
-        setStartKm('');
-        setEndKm('');
-      }
+    };
+    
+    if (isOpen) {
+        populateForm();
     }
   }, [entryToEdit, isOpen, deliveryCount, companies, vehicles]);
   
@@ -110,13 +120,13 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
     const company = companies.find(c => c.id === companyId);
     setSelectedCompany(company || null);
   
-    if (company && !entryToEdit) { // Só preenche automaticamente para novos registros
+    // Só preenche automaticamente se não estiver editando um registro existente.
+    // Se for um novo registro ou um registro iniciado pelo rastreador (sem dailyRate), preenche.
+    if (company && (!entryToEdit || !entryToEdit.dailyRate)) {
       if (company.paymentType === 'fixed') {
-        // Se for fixo, APENAS a diária é zerada. A taxa por entrega vem da empresa.
         setDailyRate('0');
         setDeliveryFee(String(company.deliveryFee || 0));
       } else {
-        // Se for diária, preenche ambos com os valores da empresa.
         setDailyRate(String(company.dailyRate || 0));
         setDeliveryFee(String(company.deliveryFee || 0));
       }
@@ -144,6 +154,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
       totalFromDeliveries,
       totalEarned,
       kmDriven,
+      lastKm: parseFloat(endKm) || 0,
     };
     onSave(entryData);
     onClose();
@@ -155,7 +166,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
         <DialogHeader>
           <DialogTitle>{entryToEdit ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
           <DialogDescription>
-            {entryToEdit && date ? `Modificando registro do dia ${format(date, 'dd/MM/yyyy')}` : (date ? `Criando registro para o dia ${format(date, 'dd/MM/yyyy')}`: 'Selecione uma data')}
+            {date ? `Modificando registro do dia ${format(date, 'dd/MM/yyyy')}`: 'Selecione uma data'}
           </DialogDescription>
         </DialogHeader>
 

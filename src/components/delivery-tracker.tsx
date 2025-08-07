@@ -1,3 +1,4 @@
+// src/components/delivery-tracker.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,8 +13,8 @@ import { ReportsScreen } from "@/components/reports-screen";
 import { VehiclesScreen } from './vehicles-screen';
 import { CompaniesScreen } from './companies-screen';
 import { DataScreen } from './data-screen';
-import { getAllCompanies } from '@/lib/db';
-import type { Company } from '@/types/company';
+import { getAllCompanies, getAllVehicles } from '@/lib/db';
+import type { Company, Vehicle } from '@/types';
 import { DailyEntriesScreen } from './daily-entries-screen';
 import { DashboardScreen } from './dashboard-screen';
 import { LiveTrackerScreen } from './live-tracker-screen';
@@ -29,6 +30,7 @@ export default function DeliveryTracker() {
   const [settings, setSettings] = useState<Settings>({ autoCount: true, stopDuration: 60, baseRadius: 200 });
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
@@ -42,8 +44,13 @@ export default function DeliveryTracker() {
     setIsMounted(true);
 
     const loadInitialData = async () => {
-      const allCompanies = await getAllCompanies();
+      const [allCompanies, allVehicles] = await Promise.all([
+        getAllCompanies(),
+        getAllVehicles()
+      ]);
       setCompanies(allCompanies);
+      setVehicles(allVehicles);
+
       if (allCompanies.length > 0) {
         const lastCompanyId = localStorage.getItem('runDeliveryLastCompany');
         const companyExists = allCompanies.some(c => c.id === lastCompanyId);
@@ -68,7 +75,15 @@ export default function DeliveryTracker() {
       case 'dashboard':
         return <DashboardScreen onNavigate={setActiveScreen} />;
       case 'rastreador':
-        return <LiveTrackerScreen count={count} setCount={setCount} settings={settings} companies={companies} activeCompanyId={activeCompanyId} setActiveCompanyId={setActiveCompanyId} />;
+        return <LiveTrackerScreen 
+                  count={count} 
+                  setCount={setCount} 
+                  settings={settings} 
+                  companies={companies} 
+                  vehicles={vehicles} 
+                  activeCompanyId={activeCompanyId} 
+                  setActiveCompanyId={setActiveCompanyId} 
+                />;
       case 'registros':
         return <DailyEntriesScreen deliveryCount={count} />;
       case 'relatorios':

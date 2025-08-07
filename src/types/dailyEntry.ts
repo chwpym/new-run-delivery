@@ -14,4 +14,5 @@ export type DailyEntry = {
   startKm?: number;
   endKm?: number;
   kmDriven?: number;
+  lastKm?: number; // Campo para armazenar o último KM final registrado
 };
