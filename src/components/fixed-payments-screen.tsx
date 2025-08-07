@@ -22,7 +22,7 @@ export function FixedPaymentsScreen() {
     const paymentsData = await getAllFixedPayments();
     const companiesData = await getAllCompanies();
     setPayments(paymentsData.sort((a, b) => b.date.localeCompare(a.date)));
-    setCompanies(companiesData);
+    setCompanies(companiesData.filter(c => c.paymentType === 'fixed')); // Filtra para mostrar apenas empresas com pagamento fixo
   };
 
   useEffect(() => {
@@ -49,6 +49,8 @@ export function FixedPaymentsScreen() {
 
   const getCompanyName = (id: string) => companies.find(c => c.id === id)?.name || 'N/A';
   const totalReceived = payments.reduce((sum, p) => sum + p.value, 0);
+  const totalDiscounts = payments.reduce((sum, p) => sum + (p.discounts || 0), 0);
+  const netReceived = totalReceived - totalDiscounts;
 
   return (
     <>
@@ -65,18 +67,20 @@ export function FixedPaymentsScreen() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Card className="p-4 text-center">
-              <CardTitle className="text-lg">Total Recebido (Todos os Períodos)</CardTitle>
-              <p className="text-2xl font-bold text-primary">R$ {totalReceived.toFixed(2)}</p>
+              <CardTitle className="text-lg">Total Líquido Recebido</CardTitle>
+              <p className="text-2xl font-bold text-primary">R$ {netReceived.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Total Bruto: R$ {totalReceived.toFixed(2)} | Total Descontos: R$ {totalDiscounts.toFixed(2)}</p>
             </Card>
 
-            {companies.length === 0 && <p className="text-center text-destructive py-4">Você precisa cadastrar uma empresa primeiro.</p>}
+            {companies.length === 0 && <p className="text-center text-destructive py-4">Você precisa cadastrar uma empresa com pagamento do tipo &quot;Fixo&quot; primeiro.</p>}
             
             {payments.length > 0 ? payments.map(item => (
               <Card key={item.id} className="p-4 flex justify-between items-center">
                 <div>
                   <p className="font-bold">{item.description}</p>
                   <p className="text-sm text-muted-foreground">{getCompanyName(item.companyId)} - {format(parseISO(item.date), 'dd/MM/yyyy')}</p>
-                  <p className="font-bold text-lg text-primary">R$ {item.value.toFixed(2)}</p>
+                  <p className="font-bold text-lg text-primary">R$ {(item.value - (item.discounts || 0)).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Bruto: R$ {item.value.toFixed(2)} {item.discounts ? ` | Desc: R$ ${item.discounts.toFixed(2)}` : ''}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="icon" onClick={() => handleOpenModal(item)}><Edit className="h-4 w-4" /></Button>

@@ -53,6 +53,14 @@ export function CompaniesScreen() {
     setCompanyToDelete(null);
     fetchCompanies(); // Recarrega a lista da tela
   };
+  
+  const getPaymentDescription = (company: Company) => {
+    if (company.paymentType === 'fixed') {
+      return `Fixo Previsto: R$ ${company.fixedValue?.toFixed(2) || '0.00'}`;
+    }
+    return `Diária: R$ ${company.dailyRate?.toFixed(2) || '0.00'}`;
+  }
+
 
   return (
     <>
@@ -72,7 +80,7 @@ export function CompaniesScreen() {
               <Card key={company.id} className="p-4 space-y-2">
                 <p className="font-bold text-lg">{company.name}</p>
                 <div className="text-sm text-muted-foreground">
-                  <p>Pagamento: {company.paymentType === 'daily' ? `Diária (R$ ${company.dailyRate?.toFixed(2) || '0.00'})` : `Fixo (R$ ${company.fixedValue?.toFixed(2) || '0.00'})`}</p>
+                  <p>{getPaymentDescription(company)}</p>
                   <p>Taxa por Entrega: R$ {(company.deliveryFee || 0).toFixed(2)}</p>
                   {company.baseLocation ? (
                     <p className="text-xs text-green-500">Base definida: {company.baseLocation.latitude.toFixed(4)}, {company.baseLocation.longitude.toFixed(4)}</p>

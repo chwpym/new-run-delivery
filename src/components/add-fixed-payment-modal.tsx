@@ -23,7 +23,10 @@ export function AddFixedPaymentModal({ isOpen, onClose, onSave, itemToEdit, comp
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [companyId, setCompanyId] = useState<string>('');
   const [value, setValue] = useState('');
+  const [discounts, setDiscounts] = useState('');
   const [description, setDescription] = useState('');
+  
+  const selectedCompany = companies.find(c => c.id === companyId);
 
   useEffect(() => {
     if (isOpen) {
@@ -31,15 +34,25 @@ export function AddFixedPaymentModal({ isOpen, onClose, onSave, itemToEdit, comp
         setDate(new Date(itemToEdit.date));
         setCompanyId(itemToEdit.companyId);
         setValue(String(itemToEdit.value));
+        setDiscounts(String(itemToEdit.discounts || ''));
         setDescription(itemToEdit.description);
       } else {
         setDate(new Date());
         setCompanyId(companies[0]?.id || '');
         setValue('');
+        setDiscounts('');
         setDescription('Pagamento Fixo Mensal'); // Valor padrão
       }
     }
   }, [itemToEdit, isOpen, companies]);
+
+  // Efeito para preencher o valor automaticamente
+  useEffect(() => {
+    if (isOpen && !itemToEdit && selectedCompany && selectedCompany.paymentType === 'fixed') {
+      setValue(String(selectedCompany.fixedValue || ''));
+    }
+  }, [companyId, isOpen, itemToEdit, selectedCompany]);
+
 
   const handleSubmit = () => {
     if (!date || !companyId || !value || !description) {
@@ -51,12 +64,15 @@ export function AddFixedPaymentModal({ isOpen, onClose, onSave, itemToEdit, comp
         date: format(date, 'yyyy-MM-dd'),
         companyId,
         value: parseFloat(value),
+        discounts: parseFloat(discounts) || 0,
         description,
       },
       itemToEdit?.id
     );
     onClose();
   };
+
+  const netValue = (parseFloat(value) || 0) - (parseFloat(discounts) || 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -77,15 +93,28 @@ export function AddFixedPaymentModal({ isOpen, onClose, onSave, itemToEdit, comp
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
+               {selectedCompany?.fixedValue && (
+                <p className="text-xs text-muted-foreground">Previsto: R$ {selectedCompany.fixedValue.toFixed(2)}</p>
+              )}
             </div>
           </div>
           <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
               <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Adiantamento quinzenal"/>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="value">Valor Recebido (R$)</Label>
-            <Input id="value" type="number" value={value} onChange={(e) => setValue(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="value">Valor Bruto Recebido (R$)</Label>
+                <Input id="value" type="number" value={value} onChange={(e) => setValue(e.target.value)} />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="discounts">Descontos (R$)</Label>
+                <Input id="discounts" type="number" value={discounts} onChange={(e) => setDiscounts(e.target.value)} placeholder="Ex: 50.00"/>
+            </div>
+          </div>
+          <div className="p-4 border rounded-md bg-muted">
+              <h4 className="text-md font-medium text-center">Valor Líquido a Receber</h4>
+              <p className='font-bold text-2xl text-primary text-center mt-2'>R$ {netValue.toFixed(2)}</p>
           </div>
         </div>
         <DialogFooter>

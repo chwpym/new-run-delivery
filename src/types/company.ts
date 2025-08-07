@@ -7,4 +7,5 @@ export type Company = {
   paymentType: PaymentType;
   dailyRate?: number; // Valor da diária
   deliveryFee: number; // Valor padrão por entrega
+  fixedValue?: number; // Valor fixo PREVISTO
 };

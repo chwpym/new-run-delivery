@@ -20,27 +20,30 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
   const [paymentType, setPaymentType] = useState<PaymentType>('daily');
   const [dailyRate, setDailyRate] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [fixedValue, setFixedValue] = useState(''); // Valor fixo previsto
 
   useEffect(() => {
     if (isOpen && companyToEdit) {
-      // Modo de Edição: Preenche os campos com os dados existentes
+      // Modo de Edição
       setName(companyToEdit.name);
-      setPaymentType(companyToEdit.paymentType || 'daily'); // Garante um valor padrão
-      setDailyRate(String(companyToEdit.dailyRate || '')); // Converte para string, ou usa '' se for nulo/undefined
-      setDeliveryFee(String(companyToEdit.deliveryFee || '')); // Converte para string, ou usa '' se for nulo/undefined
+      setPaymentType(companyToEdit.paymentType || 'daily');
+      setDailyRate(String(companyToEdit.dailyRate || ''));
+      setDeliveryFee(String(companyToEdit.deliveryFee || ''));
+      setFixedValue(String(companyToEdit.fixedValue || ''));
     } else if (isOpen) {
-      // Modo de Adição: Limpa todos os campos
+      // Modo de Adição
       setName('');
       setPaymentType('daily');
       setDailyRate('');
       setDeliveryFee('');
+      setFixedValue('');
     }
   }, [companyToEdit, isOpen]);
 
 
   const handleSubmit = () => {
-    if (!name || !deliveryFee) {
-      alert("Nome e Valor por Entrega são obrigatórios.");
+    if (!name) {
+      alert("Nome da empresa é obrigatório.");
       return;
     }
     onSave(
@@ -48,7 +51,8 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
         name,
         paymentType,
         dailyRate: paymentType === 'daily' ? parseFloat(dailyRate) || undefined : undefined,
-        deliveryFee: parseFloat(deliveryFee),
+        deliveryFee: parseFloat(deliveryFee) || 0, // Garante que seja um número
+        fixedValue: paymentType === 'fixed' ? parseFloat(fixedValue) || undefined : undefined,
       },
       companyToEdit?.id
     );
@@ -65,13 +69,11 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Nome da Empresa (já existe) */}
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Empresa</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
-          {/* Tipo de Pagamento */}
           <div className="space-y-2">
             <Label>Forma de Pagamento</Label>
             <RadioGroup value={paymentType} onValueChange={(value: any) => setPaymentType(value)}>
@@ -94,9 +96,16 @@ export function AddCompanyModal({ isOpen, onClose, onSave, companyToEdit }: AddC
             </div>
           )}
 
-          {/* Valor por Entrega */}
+          {paymentType === 'fixed' && (
+            <div className="space-y-2">
+              <Label htmlFor="fixedValue">Valor Fixo Previsto (R$)</Label>
+              <Input id="fixedValue" type="number" value={fixedValue} onChange={(e) => setFixedValue(e.target.value)} placeholder="Ex: 2000.00" />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="deliveryFee">Valor Padrão por Entrega (R$)</Label>
+            <p className="text-xs text-muted-foreground">Usado para diárias ou como valor extra em pagamentos fixos.</p>
             <Input id="deliveryFee" type="number" value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} placeholder="Ex: 5.50" />
           </div>
         </div>
