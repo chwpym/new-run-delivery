@@ -1,32 +1,14 @@
 {
-  "theme_color": "#16a34a",
-  "background_color": "#09090b",
-  "display": "standalone",
-  "scope": "/",
-  "start_url": "/",
-  "name": "RunDelivery",
-  "short_name": "RunDelivery",
-  "description": "App de Gest\u00e3o para Entregadores",
-  "icons": [
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-256x256.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+    "name": "RunDelivery",
+    "short_name": "RunDelivery",
+    "description": "App de Gestão para Entregadores",
+    "icons": [
+        { "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+    ],
+    "theme_color": "#16a34a",
+    "background_color": "#ffffff",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait"
 }

@@ -34,6 +34,7 @@ export default function DeliveryTracker() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -66,6 +67,20 @@ export default function DeliveryTracker() {
   useEffect(() => { if (activeCompanyId) localStorage.setItem('runDeliveryLastCompany', activeCompanyId); }, [activeCompanyId]);
 
   const confirmReset = () => { setCount(0); setIsResetDialogOpen(false); };
+  
+  const handleResetSession = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+  
+  const handleNavigation = (screen: string) => {
+    if (screen === 'reset-session') {
+      setIsResetSessionDialogOpen(true);
+    } else {
+      setActiveScreen(screen);
+    }
+  };
+
 
   if (!isMounted) {
     return <div className="flex h-screen w-screen items-center justify-center bg-background"><Truck className="h-16 w-16 animate-pulse text-primary" /></div>;
@@ -113,7 +128,7 @@ export default function DeliveryTracker() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground font-headline">
       <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2"><MainMenu activeScreen={activeScreen} setActiveScreen={setActiveScreen} /><h1 className="text-xl font-bold">RunDelivery</h1></div>
+        <div className="flex items-center gap-2"><MainMenu activeScreen={activeScreen} setActiveScreen={handleNavigation} /><h1 className="text-xl font-bold">RunDelivery</h1></div>
         <div className="flex items-center gap-1"><ThemeToggle /><Button onClick={() => setIsResetDialogOpen(true)} variant="ghost" size="icon"><RotateCcw className="h-5 w-5" /></Button><SettingsSheet settings={settings} setSettings={setSettings} /></div>
       </header>
 
@@ -122,6 +137,20 @@ export default function DeliveryTracker() {
       </main>
 
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Zerar contador?</AlertDialogTitle><AlertDialogDescription>Esta ação irá zerar o contador de entregas de hoje.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={confirmReset}>Sim, zerar</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={isResetSessionDialogOpen} onOpenChange={setIsResetSessionDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Reiniciar Sessão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta ação limpará todos os dados de sessão do aplicativo (contadores, configurações salvas), mas não excluirá seus registros do banco de dados (empresas, veículos, etc.). Deseja continuar?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetSession}>Sim, reiniciar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

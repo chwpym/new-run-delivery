@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
   Building, Car, LogOut, MapPin, HandCoins
@@ -31,7 +31,7 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
       <SheetContent side="left" className="w-[280px] flex flex-col">
         <SheetHeader>
           <SheetTitle className="text-left">Menu Principal</SheetTitle>
-          <SheetDescription className="text-left sr-only">
+          <SheetDescription className="text-left">
             Navegação principal do aplicativo. Use os botões para acessar as diferentes telas.
           </SheetDescription>
         </SheetHeader>
@@ -93,7 +93,7 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
                 <Car className="mr-3 h-5 w-5" />
                 Gerenciar Veículos
               </Button>
-              <Button variant="ghost" className="justify-start text-base p-6 text-destructive hover:text-destructive" onClick={() => handleNavigation('logout')}>
+              <Button variant="ghost" className="justify-start text-base p-6 text-destructive hover:text-destructive" onClick={() => handleNavigation('reset-session')}>
                 <LogOut className="mr-3 h-5 w-5" />
                 Reiniciar Sessão
               </Button>
