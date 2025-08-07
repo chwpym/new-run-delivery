@@ -147,7 +147,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
   return (
     <>
-      <div className="flex flex-col items-center justify-between p-4 h-full">
+      <div className="flex flex-col items-center justify-start p-4 space-y-6">
         <div className="w-full max-w-xs space-y-6 text-center">
             <Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger>
@@ -166,7 +166,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
             <StatusDisplay />
         </div>
 
-        <div className="w-full max-w-xs space-y-2 mt-auto">
+        <div className="w-full max-w-xs space-y-2 pt-4">
             <Button size="lg" className="w-full h-14 text-lg font-bold" onClick={handleEndDay} variant="secondary">
                 <BookCheck className="h-6 w-6 mr-3" /> Encerrar Dia e Registrar
             </Button>
