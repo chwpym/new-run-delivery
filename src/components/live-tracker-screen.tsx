@@ -1,7 +1,7 @@
 // src/components/live-tracker-screen.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle, BookCheck } from "lucide-react";
@@ -38,60 +38,102 @@ interface LiveTrackerScreenProps {
 export function LiveTrackerScreen({ count, setCount, settings, companies, vehicles, activeCompanyId, setActiveCompanyId }: LiveTrackerScreenProps) {
   const [status, setStatus] = useState<Status>('Paused');
   const [origin, setOrigin] = useState<Company['baseLocation'] | null>(null);
-  const [lastDeliveryLocation, setLastDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
+  
   const watchIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
 
   const isTracking = useMemo(() => status === 'Tracking Active', [status]);
+  
+  // Refs para a nova lógica de detecção de parada
+  const lastPositionRef = useRef<GeolocationCoordinates | null>(null);
+  const stopStartTimeRef = useRef<number | null>(null);
+  const lastDeliveryLocationRef = useRef<GeolocationCoordinates | null>(null);
+
 
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
   const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
 
-  const handleIncrement = () => {
+  const handleIncrement = useCallback(() => {
     setCount(c => c + 1);
     playSuccessSound();
     vibrateSuccess();
-  }
+  }, [setCount]);
+
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
-  const processNewPosition = (position: GeolocationPosition) => {
+  const processNewPosition = useCallback((position: GeolocationPosition) => {
     if (status !== 'Tracking Active') setStatus('Tracking Active');
+    
     const { coords } = position;
-    const speed = coords.speed === null ? 0 : coords.speed * 3.6;
-    if (speed > 2) { if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; } return; }
-    if (stopTimerRef.current) return;
-    stopTimerRef.current = setTimeout(() => {
-      if (!settings.autoCount || !origin) { stopTimerRef.current = null; return; }
-      const distanceFromOrigin = getDistanceInMeters(coords, origin);
-      if (distanceFromOrigin < settings.baseRadius) { stopTimerRef.current = null; return; }
-      if (lastDeliveryLocation) {
-        const distanceFromLast = getDistanceInMeters(coords, lastDeliveryLocation);
-        if (distanceFromLast < 150) { stopTimerRef.current = null; return; }
+    const now = Date.now();
+
+    // Se é a primeira posição ou não há posição anterior, apenas armazena.
+    if (!lastPositionRef.current) {
+      lastPositionRef.current = coords;
+      return;
+    }
+
+    const distanceMoved = getDistanceInMeters(lastPositionRef.current, coords);
+
+    // Se o usuário se moveu mais de 50 metros, consideramos que ele não está parado.
+    if (distanceMoved > 50) {
+      lastPositionRef.current = coords;
+      stopStartTimeRef.current = null; // Reseta o timer de parada
+    } else {
+      // O usuário está relativamente parado.
+      // Se o timer de parada não foi iniciado, inicia agora.
+      if (!stopStartTimeRef.current) {
+        stopStartTimeRef.current = now;
       }
-      handleIncrement();
-      setLastDeliveryLocation(coords);
-      stopTimerRef.current = null;
-    }, settings.stopDuration * 1000);
-  };
+      
+      const timeStopped = (now - stopStartTimeRef.current) / 1000; // em segundos
+
+      // Verifica se o tempo parado atingiu o limite configurado
+      if (timeStopped >= settings.stopDuration) {
+        if (!settings.autoCount || !origin) return;
+
+        const distanceFromOrigin = getDistanceInMeters(coords, origin);
+        if (distanceFromOrigin < settings.baseRadius) return; // Muito perto da base
+
+        if (lastDeliveryLocationRef.current) {
+          const distanceFromLastDelivery = getDistanceInMeters(coords, lastDeliveryLocationRef.current);
+          if (distanceFromLastDelivery < 150) return; // Muito perto da última entrega
+        }
+
+        // Condições atendidas, registra a entrega!
+        handleIncrement();
+        lastDeliveryLocationRef.current = coords; // Atualiza a localização da última entrega
+        stopStartTimeRef.current = null; // Reseta o timer para não contar de novo no mesmo local
+      }
+    }
+  }, [status, settings, origin, handleIncrement]);
+
 
   const handleToggleTracking = () => {
     if (isTracking) {
       if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
-      setStatus('Paused'); setOrigin(null); releaseWakeLock();
-      if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; }
+      setStatus('Paused'); 
+      setOrigin(null);
+      releaseWakeLock();
+      lastPositionRef.current = null;
+      stopStartTimeRef.current = null;
       return;
     }
     if (!navigator.geolocation) { return alert("Geolocalização não é suportada."); }
     if (!activeCompanyId) { return alert("Selecione uma empresa."); }
     const selectedCompany = companies.find(c => c.id === activeCompanyId);
     if (!selectedCompany?.baseLocation) { return alert("Empresa sem base cadastrada."); }
+    
     setOrigin(selectedCompany.baseLocation); 
     setStatus('Tracking Active'); 
     requestWakeLock();
+    lastPositionRef.current = null;
+    stopStartTimeRef.current = null;
+    lastDeliveryLocationRef.current = null;
+    
     watchIdRef.current = navigator.geolocation.watchPosition(processNewPosition, (error) => {
       console.error("Erro GPS:", error); 
       setStatus('GPS Error');
@@ -134,7 +176,6 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   useEffect(() => {
     return () => {
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-      if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
       releaseWakeLock();
     }
   }, []);
@@ -166,7 +207,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
             <StatusDisplay />
         </div>
 
-        <div className="w-full max-w-xs space-y-2 pt-4">
+        <div className="w-full max-w-xs space-y-2">
             <Button size="lg" className="w-full h-14 text-lg font-bold" onClick={handleEndDay} variant="secondary">
                 <BookCheck className="h-6 w-6 mr-3" /> Encerrar Dia e Registrar
             </Button>
