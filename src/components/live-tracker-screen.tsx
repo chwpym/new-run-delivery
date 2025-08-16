@@ -28,7 +28,7 @@ function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coor
 
 interface LiveTrackerScreenProps {
   count: number;
-  setCount: (fn: (c: number) => number | number) => void;
+  setCount: (value: number | ((prev: number) => number)) => void;
   settings: Settings;
   companies: Company[];
   vehicles: Vehicle[];
