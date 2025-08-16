@@ -9,6 +9,7 @@ import type { Refuel } from '@/types/refuel';
 import type { Maintenance } from '@/types/maintenance';
 import type { Goal } from '@/types/goal';
 import type { FixedPayment } from '@/types/fixedPayment';
+import type { Stop } from '@/types/stop';
 
 
 interface RunDeliveryDBSchema extends DBSchema {
@@ -51,10 +52,15 @@ interface RunDeliveryDBSchema extends DBSchema {
     value: FixedPayment;
     indexes: { 'by-date': string; 'by-company': string; };
   };
+  stops: {
+    key: string;
+    value: Stop;
+    indexes: { 'by-status': string };
+  };
 }
 
 const DB_NAME = 'RunDeliveryDB';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const getDb = () => {
   return openDB<RunDeliveryDBSchema>(DB_NAME, DB_VERSION, {
@@ -106,6 +112,12 @@ export const getDb = () => {
             const store = db.createObjectStore('fixed_payments', { keyPath: 'id' });
             store.createIndex('by-date', 'date');
             store.createIndex('by-company', 'companyId');
+        }
+      }
+      if (oldVersion < 6) {
+        if (!db.objectStoreNames.contains('stops')) {
+          const store = db.createObjectStore('stops', { keyPath: 'id' });
+          store.createIndex('by-status', 'status');
         }
       }
     },
@@ -160,6 +172,11 @@ export async function getAllFixedPayments() { return (await getDb()).getAll('fix
 export async function saveFixedPayment(payment: FixedPayment) { return (await getDb()).put('fixed_payments', payment); }
 export async function deleteFixedPayment(id: string) { return (await getDb()).delete('fixed_payments', id); }
 
+// Stops
+export async function getAllStopsByStatus(status: Stop['status']) { return (await getDb()).getAllFromIndex('stops', 'by-status', status); }
+export async function saveStop(stop: Stop) { return (await getDb()).put('stops', stop); }
+export async function clearAllStops() { return (await getDb()).clear('stops'); }
+
 
 // Backup & Restore
 export async function exportDbToJson() {
@@ -173,6 +190,7 @@ export async function exportDbToJson() {
     maintenances: await db.getAll('maintenances'),
     goals: await db.getAll('goals'),
     fixed_payments: await db.getAll('fixed_payments'),
+    stops: await db.getAll('stops'),
   };
 
   const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
@@ -188,7 +206,7 @@ export async function exportDbToJson() {
 export async function importDbFromJson(jsonData: string) {
   const db = await getDb();
   const data = JSON.parse(jsonData);
-  const stores = ['companies', 'vehicles', 'daily_entries', 'costs', 'refuels', 'maintenances', 'goals', 'fixed_payments'] as const;
+  const stores = ['companies', 'vehicles', 'daily_entries', 'costs', 'refuels', 'maintenances', 'goals', 'fixed_payments', 'stops'] as const;
   
   // Limpa os dados antigos e insere os novos dentro de uma única transação
   const tx = db.transaction(stores, 'readwrite');

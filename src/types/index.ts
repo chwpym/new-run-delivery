@@ -7,3 +7,4 @@ export type { Refuel } from './refuel';
 export type { Maintenance } from './maintenance';
 export type { Goal } from './goal';
 export type { FixedPayment } from './fixedPayment';
+export type { Stop, StopStatus } from './stop';

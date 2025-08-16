@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Minus, Play, Square, MapPin, PauseCircle, AlertTriangle, BookCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Settings, Status, DailyEntry, Vehicle } from '@/types';
+import type { Settings, Status, DailyEntry, Vehicle, Stop } from '@/types';
 import type { Company } from '@/types/company';
 import { playErrorSound, playSuccessSound, vibrateError, vibrateSuccess } from '@/lib/alerts';
 import { AddEntryModal } from './add-entry-modal';
-import { getEntryById, saveDailyEntry } from '@/lib/db';
+import { getEntryById, saveDailyEntry, saveStop, clearAllStops } from '@/lib/db';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 
 function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coord2: {latitude: number, longitude: number}) {
@@ -44,33 +45,27 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<DailyEntry | null>(null);
+  const { toast } = useToast();
 
   const isTracking = useMemo(() => status === 'Tracking Active', [status]);
   
-  // Refs para a nova lógica de detecção de parada
   const lastPositionRef = useRef<GeolocationCoordinates | null>(null);
   const stopStartTimeRef = useRef<number | null>(null);
-  const lastDeliveryLocationRef = useRef<GeolocationCoordinates | null>(null);
+  const lastStopLocationRef = useRef<GeolocationCoordinates | null>(null);
 
 
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
   const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
 
-  const handleIncrement = useCallback(() => {
-    setCount(c => c + 1);
-    playSuccessSound();
-    vibrateSuccess();
-  }, [setCount]);
-
+  const handleIncrement = () => setCount(c => c + 1);
   const handleDecrement = () => setCount(c => Math.max(0, c - 1));
 
-  const processNewPosition = useCallback((position: GeolocationPosition) => {
+  const processNewPosition = useCallback(async (position: GeolocationPosition) => {
     if (status !== 'Tracking Active') setStatus('Tracking Active');
     
     const { coords } = position;
     const now = Date.now();
 
-    // Se é a primeira posição ou não há posição anterior, apenas armazena.
     if (!lastPositionRef.current) {
       lastPositionRef.current = coords;
       return;
@@ -78,41 +73,49 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
     const distanceMoved = getDistanceInMeters(lastPositionRef.current, coords);
 
-    // Se o usuário se moveu mais de 50 metros, consideramos que ele não está parado.
     if (distanceMoved > 50) {
       lastPositionRef.current = coords;
-      stopStartTimeRef.current = null; // Reseta o timer de parada
+      stopStartTimeRef.current = null; 
     } else {
-      // O usuário está relativamente parado.
-      // Se o timer de parada não foi iniciado, inicia agora.
       if (!stopStartTimeRef.current) {
         stopStartTimeRef.current = now;
       }
       
-      const timeStopped = (now - stopStartTimeRef.current) / 1000; // em segundos
+      const timeStopped = (now - stopStartTimeRef.current) / 1000;
 
-      // Verifica se o tempo parado atingiu o limite configurado
       if (timeStopped >= settings.stopDuration) {
         if (!settings.autoCount || !origin) return;
 
         const distanceFromOrigin = getDistanceInMeters(coords, origin);
-        if (distanceFromOrigin < settings.baseRadius) return; // Muito perto da base
+        if (distanceFromOrigin < settings.baseRadius) return;
 
-        if (lastDeliveryLocationRef.current) {
-          const distanceFromLastDelivery = getDistanceInMeters(coords, lastDeliveryLocationRef.current);
-          if (distanceFromLastDelivery < 150) return; // Muito perto da última entrega
+        if (lastStopLocationRef.current) {
+          const distanceFromLastStop = getDistanceInMeters(coords, lastStopLocationRef.current);
+          if (distanceFromLastStop < 150) return;
         }
+        
+        const newStop: Stop = {
+          id: new Date().toISOString(),
+          timestamp: now,
+          location: { latitude: coords.latitude, longitude: coords.longitude },
+          status: 'pending',
+        };
+        await saveStop(newStop);
 
-        // Condições atendidas, registra a entrega!
-        handleIncrement();
-        lastDeliveryLocationRef.current = coords; // Atualiza a localização da última entrega
-        stopStartTimeRef.current = null; // Reseta o timer para não contar de novo no mesmo local
+        toast({
+          title: "Parada Detectada!",
+          description: "Uma nova parada foi registrada. Verifique na tela de auditoria.",
+        });
+        vibrateSuccess();
+
+        lastStopLocationRef.current = coords;
+        stopStartTimeRef.current = null; 
       }
     }
-  }, [status, settings, origin, handleIncrement]);
+  }, [status, settings, origin, toast]);
 
 
-  const handleToggleTracking = () => {
+  const handleToggleTracking = async () => {
     if (isTracking) {
       if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
       setStatus('Paused'); 
@@ -127,12 +130,16 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     const selectedCompany = companies.find(c => c.id === activeCompanyId);
     if (!selectedCompany?.baseLocation) { return alert("Empresa sem base cadastrada."); }
     
+    // Limpa paradas antigas antes de iniciar
+    await clearAllStops();
+    setCount(() => 0); // Reseta o contador de entregas do dia
+    
     setOrigin(selectedCompany.baseLocation); 
     setStatus('Tracking Active'); 
     requestWakeLock();
     lastPositionRef.current = null;
     stopStartTimeRef.current = null;
-    lastDeliveryLocationRef.current = null;
+    lastStopLocationRef.current = null;
     
     watchIdRef.current = navigator.geolocation.watchPosition(processNewPosition, (error) => {
       console.error("Erro GPS:", error); 
@@ -143,14 +150,13 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   };
   
   const handleEndDay = async () => {
-    if (isTracking) handleToggleTracking(); // Para o rastreamento se estiver ativo
+    if (isTracking) handleToggleTracking();
     
     const todayId = format(new Date(), 'yyyy-MM-dd');
     let entry = await getEntryById(todayId);
     
-    // Se não houver registro, cria um novo objeto. Se houver, usa o existente.
     if (entry) {
-        entry.deliveriesCount = count; // Atualiza o contador de entregas
+        entry.deliveriesCount = count;
     } else {
         entry = {
             id: todayId,
@@ -166,10 +172,10 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
   const handleSaveEntry = async (entryData: DailyEntry) => {
     await saveDailyEntry(entryData);
-    setEntryToEdit(null); // Limpa o estado
-    setIsEntryModalOpen(false); // Fecha o modal
-    // Pode ser útil resetar o contador após salvar
-    setCount(() => 0); 
+    setEntryToEdit(null);
+    setIsEntryModalOpen(false);
+    setCount(() => 0);
+    await clearAllStops();
   };
 
 
@@ -188,7 +194,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
   return (
     <>
-      <div className="flex flex-col items-center justify-start p-4 space-y-6">
+      <div className="flex flex-col items-center justify-start p-4 space-y-4">
         <div className="w-full max-w-xs space-y-6 text-center">
             <Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger>
@@ -196,7 +202,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
             </Select>
             <Card className="w-full max-w-xs shadow-lg bg-card mx-auto">
                 <CardContent className="p-6">
-                    <p className="text-sm text-muted-foreground">Entregas de Hoje</p>
+                    <p className="text-sm text-muted-foreground">Entregas Confirmadas</p>
                     <p className="text-8xl font-bold tracking-tighter text-primary">{count}</p>
                 </CardContent>
             </Card>

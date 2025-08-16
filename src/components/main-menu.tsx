@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
-  Building, Car, LogOut, MapPin, HandCoins, Settings
+  Building, Car, LogOut, MapPin, HandCoins, Settings, Route
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
@@ -52,6 +52,10 @@ export function MainMenu({ activeScreen, setActiveScreen }: MainMenuProps) {
             <Button variant={activeScreen === 'rastreador' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('rastreador')}>
               <MapPin className="mr-3 h-5 w-5" />
               Rastreador
+            </Button>
+            <Button variant={activeScreen === 'auditoria' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('auditoria')}>
+              <Route className="mr-3 h-5 w-5" />
+              Auditoria de Paradas
             </Button>
             <Button variant={activeScreen === 'registros' ? 'secondary' : 'ghost'} className="justify-start text-base p-6" onClick={() => navigate('registros')}>
               <ListChecks className="mr-3 h-5 w-5" />

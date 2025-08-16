@@ -13,7 +13,7 @@ import { ReportsScreen } from "@/components/reports-screen";
 import { VehiclesScreen } from './vehicles-screen';
 import { CompaniesScreen } from './companies-screen';
 import { DataScreen } from './data-screen';
-import { getAllCompanies, getAllVehicles } from '@/lib/db';
+import { getAllCompanies, getAllVehicles, getAllStopsByStatus } from '@/lib/db';
 import type { Company, Vehicle } from '@/types';
 import { DailyEntriesScreen } from './daily-entries-screen';
 import { DashboardScreen } from './dashboard-screen';
@@ -23,6 +23,7 @@ import { RefuelsScreen } from './refuels-screen';
 import { MaintenancesScreen } from './maintenances-screen';
 import { GoalsScreen } from './goals-screen';
 import { FixedPaymentsScreen } from './fixed-payments-screen';
+import { StopsReviewScreen } from './stops-review-screen';
 
 
 export default function DeliveryTracker() {
@@ -36,12 +37,16 @@ export default function DeliveryTracker() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
+  const updateConfirmedDeliveries = async () => {
+    const confirmedStops = await getAllStopsByStatus('confirmed');
+    setCount(confirmedStops.length);
+  };
+
   useEffect(() => {
     try {
-      const savedCount = localStorage.getItem('runDeliveryCount');
-      if (savedCount) setCount(JSON.parse(savedCount));
       const savedSettings = localStorage.getItem('runDeliverySettings');
       if (savedSettings) setSettings(JSON.parse(savedSettings));
+      updateConfirmedDeliveries(); // Carrega a contagem inicial
     } catch (error) { console.error("Falha ao ler localStorage", error); }
     setIsMounted(true);
 
@@ -62,7 +67,6 @@ export default function DeliveryTracker() {
     loadInitialData();
   }, []);
 
-  useEffect(() => { if (isMounted) localStorage.setItem('runDeliveryCount', JSON.stringify(count)); }, [count, isMounted]);
   useEffect(() => { if (isMounted) localStorage.setItem('runDeliverySettings', JSON.stringify(settings)); }, [settings, isMounted]);
   useEffect(() => { if (activeCompanyId) localStorage.setItem('runDeliveryLastCompany', activeCompanyId); }, [activeCompanyId]);
 
@@ -100,6 +104,8 @@ export default function DeliveryTracker() {
                   activeCompanyId={activeCompanyId} 
                   setActiveCompanyId={setActiveCompanyId} 
                 />;
+      case 'auditoria':
+        return <StopsReviewScreen onConfirmDelivery={updateConfirmedDeliveries} />;
       case 'registros':
         return <DailyEntriesScreen deliveryCount={count} />;
       case 'recebimentos':
