@@ -75,7 +75,9 @@ export default function DeliveryTracker() {
   const confirmReset = () => { setCount(0); setIsResetDialogOpen(false); };
   
   const handleResetSession = () => {
-    localStorage.clear();
+    // Apenas limpa o localStorage, não o banco de dados.
+    // O usuário precisa limpar a permissão do site no navegador manualmente.
+    localStorage.clear(); 
     window.location.reload();
   };
   
@@ -150,7 +152,7 @@ export default function DeliveryTracker() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Reiniciar Sessão?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Esta ação limpará todos os dados de sessão do aplicativo (contadores, configurações salvas), mas não excluirá seus registros do banco de dados (empresas, veículos, etc.). Deseja continuar?
+                    Esta ação limpará todos os dados de sessão do aplicativo (contadores, configurações salvas), mas não excluirá seus registros do banco de dados (empresas, veículos, etc.). Isso pode ajudar a resolver problemas de permissão. Deseja continuar?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

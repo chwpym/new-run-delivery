@@ -28,7 +28,7 @@ function getDistanceInMeters(coord1: {latitude: number, longitude: number}, coor
 
 interface LiveTrackerScreenProps {
   count: number;
-  setCount: (fn: (c: number) => number) => void;
+  setCount: (fn: (c: number) => number | number) => void;
   settings: Settings;
   companies: Company[];
   vehicles: Vehicle[];
@@ -67,10 +67,13 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
         id: new Date().toISOString(),
         timestamp: Date.now(),
         location: { latitude: position.coords.latitude, longitude: position.coords.longitude },
-        status: 'confirmed', // Salva como confirmada diretamente
+        status: 'pending', // Salva como pendente para auditoria
       };
       await saveStop(newStop);
-      setCount(c => c + 1); // Atualiza o contador na tela
+      toast({
+          title: "Parada Manual Adicionada!",
+          description: "Verifique na tela de auditoria para confirmar a entrega.",
+      });
       vibrateSuccess(); // Vibra para dar feedback
     }, () => {
       alert("Não foi possível obter a localização para a contagem manual. A entrega não foi registrada.");
@@ -82,7 +85,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
      toast({
       variant: "destructive",
       title: "Ação não implementada",
-      description: "A remoção de entregas deve ser feita na tela de registros.",
+      description: "A remoção de entregas deve ser feita na tela de auditoria ou registros.",
     });
   };
 
@@ -99,27 +102,31 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
     const distanceMoved = getDistanceInMeters(lastPositionRef.current, coords);
 
-    if (distanceMoved > 50) {
+    if (distanceMoved > 50) { // Se moveu, reseta o timer de parada
       lastPositionRef.current = coords;
       stopStartTimeRef.current = null; 
-    } else {
-      if (!stopStartTimeRef.current) {
+    } else { // Se não se moveu (ou moveu pouco)
+      if (!stopStartTimeRef.current) { // Se o timer não foi iniciado, inicie agora
         stopStartTimeRef.current = now;
       }
       
       const timeStopped = (now - stopStartTimeRef.current) / 1000;
 
+      // Se o tempo parado exceder a duração configurada
       if (timeStopped >= settings.stopDuration) {
         if (!settings.autoCount || !origin) return;
 
+        // Verifica se a parada está fora da base
         const distanceFromOrigin = getDistanceInMeters(coords, origin);
         if (distanceFromOrigin < settings.baseRadius) return;
 
+        // Verifica se a parada é muito perto da última registrada para evitar duplicatas
         if (lastStopLocationRef.current) {
           const distanceFromLastStop = getDistanceInMeters(coords, lastStopLocationRef.current);
           if (distanceFromLastStop < 150) return;
         }
         
+        // Cria a nova parada com status PENDENTE para auditoria
         const newStop: Stop = {
           id: new Date().toISOString(),
           timestamp: now,
@@ -129,11 +136,12 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
         await saveStop(newStop);
 
         toast({
-          title: "Parada Detectada!",
-          description: "Uma nova parada foi registrada. Verifique na tela de auditoria.",
+          title: "Parada Automática Detectada!",
+          description: "Verifique na tela de auditoria para confirmar a entrega.",
         });
         vibrateSuccess();
 
+        // Atualiza a localização da última parada e reseta o timer
         lastStopLocationRef.current = coords;
         stopStartTimeRef.current = null; 
       }
@@ -158,7 +166,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     
     // Limpa paradas antigas antes de iniciar
     await clearAllStops();
-    setCount(() => 0); // Reseta o contador de entregas do dia
+    setCount(0); // Reseta o contador de entregas do dia
     
     setOrigin(selectedCompany.baseLocation); 
     setStatus('Tracking Active'); 
@@ -200,7 +208,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     await saveDailyEntry(entryData);
     setEntryToEdit(null);
     setIsEntryModalOpen(false);
-    setCount(() => 0);
+    setCount(0);
     await clearAllStops();
   };
 
