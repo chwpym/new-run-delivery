@@ -57,8 +57,34 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
   const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
 
-  const handleIncrement = () => setCount(c => c + 1);
-  const handleDecrement = () => setCount(c => Math.max(0, c - 1));
+  // Função para lidar com o INCREMENTO manual
+  const handleManualIncrement = () => {
+    if (!navigator.geolocation) return alert("GPS não suportado para registrar a localização.");
+    
+    // Pega a localização atual para salvar o ponto da entrega manual
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const newStop: Stop = {
+        id: new Date().toISOString(),
+        timestamp: Date.now(),
+        location: { latitude: position.coords.latitude, longitude: position.coords.longitude },
+        status: 'confirmed', // Salva como confirmada diretamente
+      };
+      await saveStop(newStop);
+      setCount(c => c + 1); // Atualiza o contador na tela
+      vibrateSuccess(); // Vibra para dar feedback
+    }, () => {
+      alert("Não foi possível obter a localização para a contagem manual. A entrega não foi registrada.");
+    }, { enableHighAccuracy: true });
+  };
+  
+  // Função para lidar com o DECREMENTO manual
+  const handleManualDecrement = () => {
+     toast({
+      variant: "destructive",
+      title: "Ação não implementada",
+      description: "A remoção de entregas deve ser feita na tela de registros.",
+    });
+  };
 
   const processNewPosition = useCallback(async (position: GeolocationPosition) => {
     if (status !== 'Tracking Active') setStatus('Tracking Active');
@@ -194,7 +220,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
   return (
     <>
-      <div className="flex flex-col items-center justify-start p-4 space-y-4">
+      <div className="flex flex-col items-center justify-between p-4 flex-1">
         <div className="w-full max-w-xs space-y-6 text-center">
             <Select value={activeCompanyId || ''} onValueChange={setActiveCompanyId} disabled={isTracking}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma empresa..." /></SelectTrigger>
@@ -207,8 +233,8 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
                 </CardContent>
             </Card>
             <div className="flex w-full max-w-xs gap-4">
-                <Button variant="outline" size="lg" className="flex-1" onClick={handleDecrement}><Minus className="h-5 w-5 mr-2" /> -1</Button>
-                <Button size="lg" className="flex-1" onClick={handleIncrement}><Plus className="h-5 w-5 mr-2" /> +1</Button>
+                <Button variant="outline" size="lg" className="flex-1" onClick={handleManualDecrement}><Minus className="h-5 w-5 mr-2" /> -1</Button>
+                <Button size="lg" className="flex-1" onClick={handleManualIncrement}><Plus className="h-5 w-5 mr-2" /> +1</Button>
             </div>
             <StatusDisplay />
         </div>

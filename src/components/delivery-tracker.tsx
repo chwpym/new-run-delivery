@@ -37,6 +37,8 @@ export default function DeliveryTracker() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
+  // Esta função agora é o ponto central para atualizar a contagem.
+  // Ela será chamada pela tela de auditoria e pela tela de rastreamento (contagem manual)
   const updateConfirmedDeliveries = async () => {
     const confirmedStops = await getAllStopsByStatus('confirmed');
     setCount(confirmedStops.length);
