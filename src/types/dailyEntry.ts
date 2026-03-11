@@ -10,7 +10,8 @@ export type DailyEntry = {
   deliveryFee?: number; // Valor por entrega no dia
   totalFromDeliveries?: number; // Ganhos totais das entregas
   tips?: number; // Gorjetas
-  totalEarned?: number; // Ganho total do dia (diária + entregas + gorjetas)
+  extraFee?: number; // Valor extra (diferença de entregas, bônus, etc)
+  totalEarned?: number; // Ganho total do dia (diária + entregas + extra + gorjetas)
   startKm?: number;
   endKm?: number;
   kmDriven?: number;

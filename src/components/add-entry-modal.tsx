@@ -35,6 +35,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
   const [dailyRate, setDailyRate] = useState('0');
   const [deliveryFee, setDeliveryFee] = useState('0');
   const [tips, setTips] = useState('0');
+  const [extraFee, setExtraFee] = useState('0');
   const [startKm, setStartKm] = useState('0');
   const [endKm, setEndKm] = useState('0');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -50,8 +51,9 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
     if (isDayOff) return 0;
     const rate = parseFloat(dailyRate) || 0;
     const tipValue = parseFloat(tips) || 0;
-    return rate + totalFromDeliveries + tipValue;
-  }, [dailyRate, totalFromDeliveries, tips, isDayOff]);
+    const extraValue = parseFloat(extraFee) || 0;
+    return rate + totalFromDeliveries + tipValue + extraValue;
+  }, [dailyRate, totalFromDeliveries, tips, extraFee, isDayOff]);
   
   const kmDriven = useMemo(() => {
     const start = parseFloat(startKm) || 0;
@@ -73,6 +75,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             setDailyRate(String(entryToEdit.dailyRate || ''));
             setDeliveryFee(String(entryToEdit.deliveryFee || ''));
             setTips(String(entryToEdit.tips || ''));
+            setExtraFee(String(entryToEdit.extraFee || ''));
             setStartKm(String(entryToEdit.startKm || ''));
             setEndKm(String(entryToEdit.endKm || ''));
         } else {
@@ -84,6 +87,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             setCompanyId(companies.length > 0 ? companies[0].id : undefined);
             setVehicleId(vehicles.length > 0 ? vehicles[0].id : undefined);
             setTips('');
+            setExtraFee('');
             setEndKm('');
 
             // Tenta buscar o KM final do dia anterior
@@ -111,6 +115,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
       setDailyRate('0');
       setDeliveryFee('0');
       setTips('0');
+      setExtraFee('0');
       setSelectedCompany(null);
     }
   }, [isDayOff]);
@@ -149,6 +154,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
       dailyRate: isDayOff ? 0 : parseFloat(dailyRate) || 0,
       deliveryFee: isDayOff ? 0 : parseFloat(deliveryFee) || 0,
       tips: isDayOff ? 0 : parseFloat(tips) || 0,
+      extraFee: isDayOff ? 0 : parseFloat(extraFee) || 0,
       startKm: parseFloat(startKm) || 0,
       endKm: parseFloat(endKm) || 0,
       totalFromDeliveries,
@@ -204,7 +210,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             {/* Ganhos */}
             <div className='p-4 border rounded-md'>
               <h3 className="text-lg font-medium mb-2">Ganhos do Dia</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="deliveriesCount">Nº Entregas</Label>
                   <Input id="deliveriesCount" type="number" value={deliveriesCount} onChange={e => setDeliveriesCount(e.target.value)} disabled={isDayOff} />
@@ -225,6 +231,10 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                   <Label htmlFor="tips">Gorjetas (R$)</Label>
                   <Input id="tips" type="number" value={tips} onChange={e => setTips(e.target.value)} disabled={isDayOff} />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extraFee">Tx Extra/Dif (R$)</Label>
+                  <Input id="extraFee" type="number" value={extraFee} onChange={e => setExtraFee(e.target.value)} disabled={isDayOff} />
+                </div>
               </div>
               <div className='mt-4 p-2 border rounded-md'>
                 <h4 className="text-md font-medium mb-2">Resumo Financeiro do Dia</h4>
@@ -232,6 +242,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
                     <div className="space-y-1">
                         <p>Diária/Fixo: <span className='font-bold'>R$ {parseFloat(dailyRate).toFixed(2)}</span></p>
                         <p>Entregas: <span className='font-bold'>R$ {totalFromDeliveries.toFixed(2)}</span></p>
+                        <p>Tx Extra/Dif: <span className='font-bold'>R$ {parseFloat(extraFee || '0').toFixed(2)}</span></p>
                         <p>Gorjetas: <span className='font-bold'>R$ {parseFloat(tips || '0').toFixed(2)}</span></p>
                     </div>
                     <div className="flex flex-col items-end justify-center">
