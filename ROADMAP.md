@@ -16,6 +16,11 @@
 - [x] Versão no footer
 - [x] Touch targets 44-48px
 - [x] Next.js 16 + Turbopack
+- [x] Campo Taxa Extra (Tx Extra/Dif) para precificação variável
+- [x] Média diária de entregas no dashboard
+- [x] Custo por km (combustível ÷ km rodados) no dashboard
+- [x] Offline indicator (banner quando sem internet)
+- [x] Modo escuro automático por horário
 
 ---
 
@@ -24,14 +29,9 @@
 ### v1.1 — Relatórios e Exportação
 - [ ] Exportar relatórios pra PDF/Excel
 - [ ] Gráficos no Dashboard (evolução mensal de ganhos/custos)
-- [ ] Custo por km (combustível ÷ km rodados)
-- [ ] Média diária de entregas no dashboard
 
 ### v1.2 — UX e Offline
-- [ ] Offline indicator (banner quando sem internet)
 - [ ] Onboarding de primeiro uso (cadastrar empresa → veículo → começar)
-- [ ] Backup automático semanal (IndexedDB → JSON no dispositivo)
-- [ ] Modo escuro automático por horário
 
 ### v1.3 — Comunicação e Gamificação
 - [ ] Compartilhar resumo mensal via WhatsApp

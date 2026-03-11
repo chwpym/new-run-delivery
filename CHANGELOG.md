@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis do projeto RunDelivery.
 
+## [1.1.0] - 2026-03-11
+
+### 🚀 Novas Features (Quick Wins)
+- **Offline Indicator**: Banner rojo no topo avisando quando o app está offline.
+- **Média Diária (Dashboard)**: Novo card exibindo a média de entregas/dia e dias trabalhados.
+- **Custo por Km (Dashboard)**: Novo card exibindo o custo de combustível por quilômetro rodado.
+- **Tema Automático**: Botão de tema agora tem 3 estados (Claro, Escuro, Sistema).
+- **Taxa Extra (Tx Extra/Dif)**: Novo campo na tela de registros para valores variáveis de entrega, permitindo ajustar os ganhos sem alterar a taxa base da empresa.
+
 ## [1.0.0] - 2026-03-11
 
 ### 🚀 Migração Completa (P0 → P3)
