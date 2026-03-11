@@ -39,7 +39,8 @@
 - [ ] Ranking/recorde mensal de entregas
 - [ ] Foto de comprovante em abastecimento/manutenção
 
-### v1.4 — Filtros Avançados
+### v1.4 — Filtros Avançados & Automação
+- [ ] Geofencing (Aprovar entrega automaticamente baseado na localização GPS + Raio em metros)
 - [ ] Filtro por empresa em todas as telas
 - [ ] Busca por texto nos registros
 - [ ] Paginação de listas longas
