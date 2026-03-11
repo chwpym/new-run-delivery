@@ -17,9 +17,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: true, // Run ESLint separately: npm run lint (OOM during build)
-  },
+  // Next.js 16: Turbopack is default. Add empty turbopack config to allow PWA's webpack config.
+  turbopack: {},
   images: {
     remotePatterns: [
       {
