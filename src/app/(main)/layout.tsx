@@ -10,6 +10,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MainMenu } from "@/components/main-menu";
 import { useApp } from "@/components/providers/app-provider";
 
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
+
 export default function MainLayout({
   children,
 }: {
@@ -43,6 +45,8 @@ export default function MainLayout({
           <SettingsSheet settings={settings} setSettings={setSettings} />
         </div>
       </header>
+
+      <OfflineIndicator />
 
       <main className="flex-1 overflow-y-auto bg-background">
         {children}
