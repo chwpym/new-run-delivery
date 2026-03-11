@@ -48,6 +48,10 @@ export default function MainLayout({
         {children}
       </main>
 
+      <footer className="py-1 text-center text-xs text-muted-foreground border-t">
+        RunDelivery v1.0.0
+      </footer>
+
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Zerar contador?</AlertDialogTitle><AlertDialogDescription>Esta ação irá zerar o contador de entregas de hoje.</AlertDialogDescription></AlertDialogHeader>

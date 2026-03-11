@@ -83,10 +83,20 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   
   // Função para lidar com o DECREMENTO manual
   const handleManualDecrement = () => {
-     toast({
-      variant: "destructive",
-      title: "Ação não implementada",
-      description: "A remoção de entregas deve ser feita na tela de auditoria ou registros.",
+    if (count <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Contador já está em zero",
+        description: "Não é possível diminuir abaixo de zero.",
+      });
+      vibrateError();
+      return;
+    }
+    setCount((prev: number) => Math.max(0, prev - 1));
+    vibrateSuccess();
+    toast({
+      title: "Entrega removida",
+      description: `Contador: ${count - 1}`,
     });
   };
 
