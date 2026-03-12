@@ -30,7 +30,8 @@
 - [ ] Exportar relatórios pra PDF/Excel
 - [ ] Gráficos no Dashboard (evolução mensal de ganhos/custos)
 
-### v1.2 — UX e Offline
+### v1.2 — UX e Cloud Sync
+- [ ] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real
 - [ ] Onboarding de primeiro uso (cadastrar empresa → veículo → começar)
 
 ### v1.3 — Comunicação e Gamificação
