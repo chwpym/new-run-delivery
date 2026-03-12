@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { DollarSign, MapPin, PlusCircle, TrendingUp, Target, TrendingDown, Package, Gauge } from "lucide-react";
 import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getGoal, getAllFixedPayments } from '@/lib/db';
-import { format, startOfMonth, endOfMonth, differenceInCalendarDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInCalendarDays, eachDayOfInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from './ui/progress';
 import { DateRangeFilter } from './ui/date-range-filter';
 import Link from 'next/link';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -18,6 +20,7 @@ interface DashboardScreenProps {
 export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, avgDeliveries: 0, costPerKm: 0, totalDeliveries: 0, workDays: 0, totalKm: 0 });
   const [goalProgress, setGoalProgress] = useState({ current: 0, goal: 0, progress: 0 });
+  const [chartData, setChartData] = useState<any[]>([]);
   
   const now = new Date();
   const [filterStart, setFilterStart] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
@@ -65,6 +68,32 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
     const currentGoal = goal?.value || 0;
     const progress = currentGoal > 0 ? (gross / currentGoal) * 100 : 0;
     setGoalProgress({ current: gross, goal: currentGoal, progress });
+
+    // Process chart data for evolution
+    try {
+      const daysInInterval = eachDayOfInterval({ start: parseISO(filterStart), end: parseISO(filterEnd) });
+      const processedChartData = daysInInterval.map(day => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        
+        const entryForDay = entries.find(e => e.date === dayStr && !e.isDayOff);
+        const dailyEarned = entryForDay?.totalEarned || 0;
+        const fixedForDay = fixedPayments.filter(p => p.date === dayStr).reduce((sum, p) => sum + p.value, 0);
+        
+        const costsForDay = costs.filter(c => c.date === dayStr).reduce((s, c) => s + c.value, 0);
+        const refuelsForDay = refuels.filter(r => r.date === dayStr).reduce((s, r) => s + r.value, 0);
+        const maintenancesForDay = maintenances.filter(m => m.date === dayStr).reduce((s, m) => s + m.value, 0);
+
+        return { 
+          date: format(day, 'dd/MM'), 
+          gross: dailyEarned + fixedForDay,
+          expenses: costsForDay + refuelsForDay + maintenancesForDay
+        };
+      });
+      setChartData(processedChartData);
+    } catch (e) {
+      console.error("Invalid date interval for chartData");
+    }
+
   }, [filterStart, filterEnd]);
 
   useEffect(() => {
@@ -130,6 +159,29 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               <p className="text-xs text-muted-foreground">{stats.totalKm > 0 ? `${stats.totalKm} km rodados` : 'Sem dados de km'}</p>
             </CardContent>
           </Card>
+        </CardContent>
+      </Card>
+
+      {/* Chart Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Evolução no Período</CardTitle>
+          <CardDescription>Receitas vs Despesas dia a dia</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={{ 
+            gross: { label: "Receita (R$)", color: "hsl(var(--primary))" },
+            expenses: { label: "Despesas (R$)", color: "hsl(var(--destructive))" }
+          }} className="w-full h-[250px] sm:h-[300px]">
+            <LineChart data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3"/>
+              <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => `R$ ${v}`} />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Line type="monotone" dataKey="gross" stroke="var(--color-gross)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ChartContainer>
         </CardContent>
       </Card>
       

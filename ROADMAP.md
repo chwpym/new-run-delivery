@@ -27,8 +27,8 @@
 ## 🔥 Próximas Features (por prioridade)
 
 ### v1.1 — Relatórios e Exportação
-- [ ] Exportar relatórios pra PDF/Excel
-- [ ] Gráficos no Dashboard (evolução mensal de ganhos/custos)
+- [x] Exportar relatórios pra PDF/Excel
+- [x] Gráficos no Dashboard (evolução mensal de ganhos/custos)
 
 ### v1.2 — UX e Cloud Sync
 - [ ] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real

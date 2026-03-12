@@ -19,6 +19,8 @@ import { ptBR } from 'date-fns/locale';
 import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
+import { convertToCSV, downloadCSV } from '@/lib/export-utils';
+import { Download, Printer } from 'lucide-react';
 
 const chartConfig = {
   totalEarned: { label: "Ganhos (R$)", color: "hsl(var(--primary))" },
@@ -48,6 +50,7 @@ export function ReportsScreen() {
 
   const [chartData, setChartData] = useState<any[]>([]);
   const [pieData, setPieData] = useState<any[]>([]);
+  const [exportData, setExportData] = useState<any[]>([]);
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, days: 0, avg: 0 });
 
   useEffect(() => {
@@ -131,6 +134,23 @@ export function ReportsScreen() {
         { name: 'Manutenção', value: maintenanceValue, fill: 'var(--color-maintenances)' },
         { name: 'Outros Custos', value: costValue, fill: 'var(--color-costs)' },
       ].filter(item => item.value > 0));
+
+      // Prepare export data
+      const dataForExport = workingDays.map(e => ({
+        Data: format(parseISO(e.date), 'dd/MM/yyyy'),
+        Empresa: allCompanies.find(c => c.id === e.companyId)?.name || '-',
+        Veículo: allVehicles.find(v => v.id === e.vehicleId)?.name || '-',
+        Entregas: e.deliveriesCount || 0,
+        "Ganhos Entregas (R$)": e.totalFromDeliveries || 0,
+        "Diária/Fixo (R$)": e.dailyRate || 0,
+        "Gorjetas (R$)": e.tips || 0,
+        "Tx Extra/Dif (R$)": e.extraFee || 0,
+        "Total Ganho (R$)": e.totalEarned || 0,
+        "KM Inicio": e.startKm || 0,
+        "KM Fim": e.endKm || 0,
+        "KM Rodados": e.kmDriven || 0
+      }));
+      setExportData(dataForExport);
     };
     fetchData();
   }, [filters]);
@@ -147,10 +167,20 @@ export function ReportsScreen() {
     });
   };
 
+  const handleExportCSV = () => {
+    const csv = convertToCSV(exportData);
+    const filename = `relatorio_entregas_${format(filters.startDate || new Date(), 'yyyy_MM')}.csv`;
+    downloadCSV(csv, filename);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="p-4 space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="print:hidden">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className='flex items-center gap-3 self-start'>
                 <BarChart2 className="h-6 w-6 text-primary" />
@@ -160,13 +190,19 @@ export function ReportsScreen() {
                 </div>
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Anterior</Button>
-                    <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo</Button>
+                    <Button variant="outline" onClick={handlePrint} className="flex-1 whitespace-nowrap"><Printer className="h-4 w-4 mr-2" /> Imprimir</Button>
+                    <Button variant="outline" onClick={handleExportCSV} className="flex-1 whitespace-nowrap"><Download className="h-4 w-4 mr-2" /> Exportar CSV</Button>
                 </div>
             </div>
             
             <Card className="p-4 mt-4 bg-card/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between mb-4">
+                 <div className="flex items-center gap-2 w-full md:w-auto">
+                      <Button variant="outline" onClick={() => handleMonthChange('prev')} className="flex-1">Mês Anterior</Button>
+                      <Button variant="outline" onClick={() => handleMonthChange('next')} className="flex-1">Próximo Mês</Button>
+                  </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label>Data Inicial</Label>
                   <DatePicker date={filters.startDate} setDate={(d) => setFilters(prev => ({...prev, startDate: d}))} />
