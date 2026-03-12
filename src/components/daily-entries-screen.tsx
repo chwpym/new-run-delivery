@@ -18,12 +18,16 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Collapsible, CollapsibleContent } from './ui/collapsible';
 import type { Refuel } from '@/types';
+import { Input } from './ui/input';
+import { useApp } from './providers/app-provider';
+import { Search } from 'lucide-react';
 
 interface DailyEntriesScreenProps {
   deliveryCount: number;
 }
 
 export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
+  const { activeCompanyId } = useApp();
   const [allEntries, setAllEntries] = useState<DailyEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -37,13 +41,13 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   const [filters, setFilters] = useState<{
     startDate: Date | null,
     endDate: Date | null,
-    companyId: string,
     vehicleId: string,
+    searchQuery: string,
   }>({
     startDate: null,
     endDate: null,
-    companyId: 'all',
     vehicleId: 'all',
+    searchQuery: '',
   });
   const [filteredEntries, setFilteredEntries] = useState<DailyEntry[]>([]);
 
@@ -85,15 +89,24 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
       const endStr = format(filters.endDate, 'yyyy-MM-dd');
       tempEntries = tempEntries.filter(entry => entry.date <= endStr);
     }
-    if (filters.companyId !== 'all') {
-        tempEntries = tempEntries.filter(entry => entry.companyId === filters.companyId);
+    if (activeCompanyId && activeCompanyId !== 'all') {
+        tempEntries = tempEntries.filter(entry => entry.companyId === activeCompanyId);
     }
     if (filters.vehicleId !== 'all') {
         tempEntries = tempEntries.filter(entry => entry.vehicleId === filters.vehicleId);
     }
+    if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        tempEntries = tempEntries.filter(entry => {
+           const vehicleName = vehicles.find(v => v.id === entry.vehicleId)?.name.toLowerCase() || '';
+           const companyName = companies.find(c => c.id === entry.companyId)?.name.toLowerCase() || '';
+           const dateStr = format(parseISO(entry.date), "dd/MM/yyyy");
+           return vehicleName.includes(query) || companyName.includes(query) || dateStr.includes(query);
+        });
+    }
     
     setFilteredEntries(tempEntries);
-  }, [filters, allEntries]);
+  }, [filters, allEntries, activeCompanyId, vehicles, companies]);
 
   const handleSaveEntry = async (entry: DailyEntry) => {
     await saveDailyEntry(entry);
@@ -210,10 +223,21 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                 </div>
 
                 {/* Botão para mostrar/esconder filtros avançados */}
-                <Button variant="outline" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
-                  <SlidersHorizontal className="mr-2 h-4 w-4" />
-                  Filtros Avançados
-                </Button>
+                <div className="flex flex-1 sm:flex-none justify-end gap-2 text-right">
+                  <div className="relative w-full sm:w-[220px]">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Buscar por placa, data..."
+                      className="w-full pl-8"
+                      value={filters.searchQuery}
+                      onChange={(e) => setFilters(prev => ({...prev, searchQuery: e.target.value}))}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Conteúdo Recolhível dos Filtros Avançados */}
@@ -229,17 +253,6 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                     <div>
                       <Label>Data Final</Label>
                       <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d || null}))} />
-                    </div>
-                    {/* Empresa */}
-                    <div>
-                      <Label>Empresa</Label>
-                      <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas as Empresas</SelectItem>
-                          {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
                     </div>
                     {/* Veículo */}
                     <div>

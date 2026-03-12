@@ -12,12 +12,14 @@ import { DateRangeFilter } from './ui/date-range-filter';
 import Link from 'next/link';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { useApp } from "@/components/providers/app-provider";
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
 }
 
 export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
+  const { activeCompanyId } = useApp();
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, avgDeliveries: 0, costPerKm: 0, totalDeliveries: 0, workDays: 0, totalKm: 0 });
   const [goalProgress, setGoalProgress] = useState({ current: 0, goal: 0, progress: 0 });
   const [chartData, setChartData] = useState<any[]>([]);
@@ -38,12 +40,21 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       getAllFixedPayments(),
     ]);
     
-    const monthlyEntries = entries.filter(e => e.date >= filterStart && e.date <= filterEnd && !e.isDayOff);
+    const monthlyEntries = entries.filter(e => 
+      e.date >= filterStart && 
+      e.date <= filterEnd && 
+      !e.isDayOff &&
+      (activeCompanyId === 'all' || e.companyId === activeCompanyId)
+    );
     const dailyGross = monthlyEntries.reduce((sum, entry) => sum + (entry.totalEarned || 0), 0);
     const totalDeliveries = monthlyEntries.reduce((sum, entry) => sum + (entry.deliveriesCount || 0), 0);
     const workDays = monthlyEntries.length;
 
-    const monthlyFixedPayments = fixedPayments.filter(p => p.date >= filterStart && p.date <= filterEnd);
+    const monthlyFixedPayments = fixedPayments.filter(p => 
+      p.date >= filterStart && 
+      p.date <= filterEnd &&
+      (activeCompanyId === 'all' || p.companyId === activeCompanyId)
+    );
     const fixedGross = monthlyFixedPayments.reduce((sum, p) => sum + p.value, 0);
 
     const gross = dailyGross + fixedGross;
@@ -75,9 +86,16 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       const processedChartData = daysInInterval.map(day => {
         const dayStr = format(day, 'yyyy-MM-dd');
         
-        const entryForDay = entries.find(e => e.date === dayStr && !e.isDayOff);
+        const entryForDay = entries.find(e => 
+          e.date === dayStr && 
+          !e.isDayOff &&
+          (activeCompanyId === 'all' || e.companyId === activeCompanyId)
+        );
         const dailyEarned = entryForDay?.totalEarned || 0;
-        const fixedForDay = fixedPayments.filter(p => p.date === dayStr).reduce((sum, p) => sum + p.value, 0);
+        const fixedForDay = fixedPayments.filter(p => 
+          p.date === dayStr &&
+          (activeCompanyId === 'all' || p.companyId === activeCompanyId)
+        ).reduce((sum, p) => sum + p.value, 0);
         
         const costsForDay = costs.filter(c => c.date === dayStr).reduce((s, c) => s + c.value, 0);
         const refuelsForDay = refuels.filter(r => r.date === dayStr).reduce((s, r) => s + r.value, 0);
@@ -94,7 +112,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       console.error("Invalid date interval for chartData");
     }
 
-  }, [filterStart, filterEnd]);
+  }, [filterStart, filterEnd, activeCompanyId]);
 
   useEffect(() => {
     fetchDashboardData();

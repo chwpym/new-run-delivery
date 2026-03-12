@@ -20,7 +20,8 @@ import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { convertToCSV, downloadCSV } from '@/lib/export-utils';
-import { Download, Printer } from 'lucide-react';
+import { Download, Printer, Share2 } from 'lucide-react';
+import { useApp } from './providers/app-provider';
 
 const chartConfig = {
   totalEarned: { label: "Ganhos (R$)", color: "hsl(var(--primary))" },
@@ -33,18 +34,17 @@ const pieChartConfig = {
 } satisfies ChartConfig;
 
 export function ReportsScreen() {
+  const { activeCompanyId } = useApp();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   const [filters, setFilters] = useState<{
     startDate: Date | undefined;
     endDate: Date | undefined;
-    companyId: string;
     vehicleId: string;
   }>({
     startDate: startOfMonth(new Date()),
     endDate: endOfMonth(new Date()),
-    companyId: 'all',
     vehicleId: 'all',
   });
 
@@ -55,7 +55,7 @@ export function ReportsScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { startDate, endDate, companyId, vehicleId } = filters;
+      const { startDate, endDate, vehicleId } = filters;
       if (!startDate || !endDate) return;
       
       const startStr = format(startDate, 'yyyy-MM-dd');
@@ -86,14 +86,14 @@ export function ReportsScreen() {
       // Apply filters
       const monthEntries = allEntries.filter(e => {
         const isWithinDate = e.date >= startStr && e.date <= endStr;
-        const companyMatch = companyId === 'all' || e.companyId === companyId;
+        const companyMatch = activeCompanyId === 'all' || e.companyId === activeCompanyId;
         const vehicleMatch = vehicleId === 'all' || e.vehicleId === vehicleId;
         return isWithinDate && companyMatch && vehicleMatch;
       });
 
       const monthFixedPayments = allFixedPayments.filter(p => {
         const isWithinDate = p.date >= startStr && p.date <= endStr;
-        const companyMatch = companyId === 'all' || p.companyId === companyId;
+        const companyMatch = activeCompanyId === 'all' || p.companyId === activeCompanyId;
         return isWithinDate && companyMatch;
       });
       
@@ -153,7 +153,7 @@ export function ReportsScreen() {
       setExportData(dataForExport);
     };
     fetchData();
-  }, [filters]);
+  }, [filters, activeCompanyId]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
     setFilters(currentFilters => {
@@ -177,6 +177,20 @@ export function ReportsScreen() {
     window.print();
   };
 
+  const handleShareWhatsApp = () => {
+    const month = format(filters.startDate || new Date(), 'MMMM/yyyy', { locale: ptBR });
+    const text = `*🚗 Resumo RunDelivery - ${month.charAt(0).toUpperCase() + month.slice(1)}*\n\n` +
+      `📦 *Entregas do período:* ${exportData.reduce((s, e) => s + Number(e.Entregas || 0), 0)}\n` +
+      `📅 *Dias Trabalhados:* ${stats.days}\n\n` +
+      `💰 *Ganhos Brutos:* R$ ${stats.gross.toFixed(2)}\n` +
+      `💸 *Despesas:* R$ ${stats.totalCosts.toFixed(2)}\n` +
+      `💵 *Saldo Líquido:* R$ ${stats.net.toFixed(2)}\n\n` +
+      `_Gerado pelo app RunDelivery_`;
+    
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="p-4 space-y-4">
       <Card>
@@ -189,7 +203,8 @@ export function ReportsScreen() {
                     <CardDescription>Análise detalhada do seu desempenho.</CardDescription>
                 </div>
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                    <Button variant="outline" onClick={handleShareWhatsApp} className="flex-1 whitespace-nowrap bg-green-600/10 text-green-600 hover:bg-green-600/20 border-green-600/20"><Share2 className="h-4 w-4 mr-2" /> Zap</Button>
                     <Button variant="outline" onClick={handlePrint} className="flex-1 whitespace-nowrap"><Printer className="h-4 w-4 mr-2" /> Imprimir</Button>
                     <Button variant="outline" onClick={handleExportCSV} className="flex-1 whitespace-nowrap"><Download className="h-4 w-4 mr-2" /> Exportar CSV</Button>
                 </div>
@@ -210,16 +225,6 @@ export function ReportsScreen() {
                  <div>
                   <Label>Data Final</Label>
                   <DatePicker date={filters.endDate} setDate={(d) => setFilters(prev => ({...prev, endDate: d}))} />
-                </div>
-                <div>
-                    <Label>Empresa</Label>
-                    <Select value={filters.companyId} onValueChange={(id) => setFilters(prev => ({...prev, companyId: id}))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todas as Empresas</SelectItem>
-                        {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                    </Select>
                 </div>
                 <div>
                     <Label>Veículo</Label>

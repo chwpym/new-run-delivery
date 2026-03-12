@@ -13,13 +13,14 @@ import { useApp } from "@/components/providers/app-provider";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { OnboardingScreen } from "@/components/onboarding-screen";
 import { LoginScreen } from "@/components/login-screen";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isMounted, isDataLoaded, count, setCount, settings, setSettings, companies, vehicles, session } = useApp();
+  const { isMounted, isDataLoaded, count, setCount, settings, setSettings, companies, vehicles, session, activeCompanyId, setActiveCompanyId } = useApp();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
@@ -50,6 +51,19 @@ export default function MainLayout({
           <h1 className="text-xl font-bold">RunDelivery</h1>
         </div>
         <div className="flex items-center gap-1">
+          {companies.length > 0 && (
+            <Select value={activeCompanyId || 'all'} onValueChange={setActiveCompanyId}>
+              <SelectTrigger className="w-[130px] h-9 text-xs line-clamp-1 truncate">
+                <SelectValue placeholder="Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Empresas</SelectItem>
+                {companies.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <ThemeToggle />
           <Button onClick={() => setIsResetDialogOpen(true)} variant="ghost" size="icon"><RotateCcw className="h-5 w-5" /></Button>
           <SettingsSheet settings={settings} setSettings={setSettings} />

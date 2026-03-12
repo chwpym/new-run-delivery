@@ -32,18 +32,18 @@
 
 ### v1.2 — UX e Cloud Sync
 - [x] Onboarding de primeiro uso (Tela de boas vindas com configuração inicial)
-- [ ] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real (cadastrar empresa → veículo → começar)
+- [x] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real
 
 ### v1.3 — Comunicação e Gamificação
-- [ ] Compartilhar resumo mensal via WhatsApp
+- [x] Compartilhar resumo mensal via WhatsApp
 - [ ] Notificações push (meta atingida, lembrete de abastecimento)
 - [ ] Ranking/recorde mensal de entregas
 - [ ] Foto de comprovante em abastecimento/manutenção
 
 ### v1.4 — Filtros Avançados & Automação
 - [ ] Geofencing (Aprovar entrega automaticamente baseado na localização GPS + Raio em metros)
-- [ ] Filtro por empresa em todas as telas
-- [ ] Busca por texto nos registros
+- [x] Filtro por empresa em todas as telas
+- [x] Busca por texto nos registros
 - [ ] Paginação de listas longas
 
 ---

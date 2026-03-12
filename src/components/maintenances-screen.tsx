@@ -4,13 +4,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wrench, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { Wrench, PlusCircle, Edit, Trash2, Search } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getAllMaintenances, saveMaintenance, deleteMaintenance, getAllVehicles } from '@/lib/db';
 import type { Maintenance, Vehicle } from '@/types';
 import { AddMaintenanceModal } from './add-maintenance-modal';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRangeFilter } from './ui/date-range-filter';
+import { Input } from './ui/input';
 
 export function MaintenancesScreen() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -22,6 +23,7 @@ export function MaintenancesScreen() {
   const now = new Date();
   const [filterStart, setFilterStart] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
   const [filterEnd, setFilterEnd] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchData = async () => {
     const data = await getAllMaintenances();
@@ -33,8 +35,19 @@ export function MaintenancesScreen() {
   useEffect(() => { fetchData(); }, []);
 
   const filteredMaintenances = useMemo(() =>
-    maintenances.filter(m => m.date >= filterStart && m.date <= filterEnd),
-    [maintenances, filterStart, filterEnd]
+    maintenances.filter(m => {
+      const isDateMatch = m.date >= filterStart && m.date <= filterEnd;
+      if (!isDateMatch) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const dateStr = format(parseISO(m.date), "dd/MM/yyyy");
+        const vehicle = vehicles.find(v => v.id === m.vehicleId)?.name.toLowerCase() || '';
+        const desc = m.description?.toLowerCase() || '';
+        return dateStr.includes(query) || vehicle.includes(query) || desc.includes(query);
+      }
+      return true;
+    }),
+    [maintenances, filterStart, filterEnd, searchQuery, vehicles]
   );
 
   const totalValue = useMemo(() => filteredMaintenances.reduce((sum, m) => sum + m.value, 0), [filteredMaintenances]);
@@ -64,14 +77,26 @@ export function MaintenancesScreen() {
       <div className="p-4 space-y-4">
         <DateRangeFilter onFilterChange={(s, e) => { setFilterStart(s); setFilterEnd(e); }} />
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle>Manutenções</CardTitle>
               <CardDescription>Acompanhe os serviços de manutenção do seu veículo.</CardDescription>
             </div>
-            <Button onClick={() => handleOpenModal()} disabled={vehicles.length === 0} className="min-h-[44px]">
-              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar
-            </Button>
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              <div className="relative w-full sm:w-[220px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar veículo, serviço, data..."
+                  className="w-full pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => handleOpenModal()} disabled={vehicles.length === 0} className="min-h-[44px] whitespace-nowrap">
+                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {filteredMaintenances.length > 0 && (
