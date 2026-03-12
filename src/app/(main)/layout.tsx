@@ -12,13 +12,14 @@ import { useApp } from "@/components/providers/app-provider";
 
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { OnboardingScreen } from "@/components/onboarding-screen";
+import { LoginScreen } from "@/components/login-screen";
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isMounted, isDataLoaded, count, setCount, settings, setSettings, companies, vehicles } = useApp();
+  const { isMounted, isDataLoaded, count, setCount, settings, setSettings, companies, vehicles, session } = useApp();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
@@ -31,6 +32,10 @@ export default function MainLayout({
 
   if (!isMounted || !isDataLoaded) {
     return <div className="flex h-screen w-screen items-center justify-center bg-background"><Truck className="h-16 w-16 animate-pulse text-primary" /></div>;
+  }
+
+  if (!session) {
+    return <LoginScreen onLoginSuccess={() => {}} />;
   }
 
   if (companies.length === 0 || vehicles.length === 0) {

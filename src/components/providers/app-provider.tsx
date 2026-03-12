@@ -4,6 +4,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { Settings, Company, Vehicle } from '@/types';
 import { getAllCompanies, getAllVehicles, getAllStopsByStatus } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { pushLocalToRemote } from '@/lib/sync';
+import type { Session, User } from '@supabase/supabase-js';
 
 interface AppContextType {
   // Delivery state
@@ -28,6 +31,10 @@ interface AppContextType {
   // Mounted state
   isMounted: boolean;
   isDataLoaded: boolean;
+
+  // Auth State
+  session: Session | null;
+  user: User | null;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -46,6 +53,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const updateConfirmedDeliveries = useCallback(async () => {
     const confirmedStops = await getAllStopsByStatus('confirmed');
@@ -88,7 +97,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       setIsDataLoaded(true);
     };
+
+    const loadAuthEnv = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      );
+      
+      return () => subscription.unsubscribe();
+    };
+
     loadInitialData();
+    loadAuthEnv();
   }, [updateConfirmedDeliveries]);
 
   // Persist settings
@@ -101,6 +127,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (activeCompanyId) localStorage.setItem('runDeliveryLastCompany', activeCompanyId);
   }, [activeCompanyId]);
 
+  // Offline-First Auto Sync
+  useEffect(() => {
+    if (!session || !isMounted) return;
+
+    // Trigger an initial sync as soon as user is logged in and mounted
+    pushLocalToRemote();
+
+    const handleSync = () => pushLocalToRemote();
+    
+    // Sync on local DB modifications
+    window.addEventListener('run-delivery-sync', handleSync);
+    // Sync when connection is restored
+    window.addEventListener('online', handleSync);
+
+    return () => {
+      window.removeEventListener('run-delivery-sync', handleSync);
+      window.removeEventListener('online', handleSync);
+    };
+  }, [session, isMounted]);
+
   return (
     <AppContext.Provider value={{
       count, setCount, updateConfirmedDeliveries,
@@ -108,6 +154,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       companies, vehicles, refreshCompanies, refreshVehicles,
       activeCompanyId, setActiveCompanyId,
       isMounted, isDataLoaded,
+      session, user,
     }}>
       {children}
     </AppContext.Provider>

@@ -129,58 +129,135 @@ export const getDb = () => {
   return dbInstance;
 };
 
+// Dispatch event to trigger background sync
+const triggerSync = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('run-delivery-sync'));
+  }
+};
+
 // Companies
 export async function getAllCompanies() { return (await getDb()).getAll('companies'); }
-export async function saveCompany(company: Company) { return (await getDb()).put('companies', company); }
-export async function deleteCompany(id: string) { return (await getDb()).delete('companies', id); }
+export async function saveCompany(company: Company) { 
+  const res = await (await getDb()).put('companies', company);
+  triggerSync();
+  return res;
+}
+export async function deleteCompany(id: string) { 
+  const res = await (await getDb()).delete('companies', id);
+  triggerSync();
+  return res;
+}
 export async function setCompanyBaseLocation(id: string, baseLocation: { latitude: number; longitude: number; }) {
   const db = await getDb();
   const company = await db.get('companies', id);
   if (company) {
     company.baseLocation = baseLocation;
-    return db.put('companies', company);
+    const res = await db.put('companies', company);
+    triggerSync();
+    return res;
   }
 }
 
 // Vehicles
 export async function getAllVehicles() { return (await getDb()).getAll('vehicles'); }
-export async function saveVehicle(vehicle: Vehicle) { return (await getDb()).put('vehicles', vehicle); }
-export async function deleteVehicle(id: string) { return (await getDb()).delete('vehicles', id); }
+export async function saveVehicle(vehicle: Vehicle) { 
+  const res = await (await getDb()).put('vehicles', vehicle); 
+  triggerSync();
+  return res;
+}
+export async function deleteVehicle(id: string) { 
+  const res = await (await getDb()).delete('vehicles', id);
+  triggerSync();
+  return res;
+}
 
 // Daily Entries
 export async function getAllEntries() { return (await getDb()).getAll('daily_entries'); }
 export async function getEntryById(id: string) { return (await getDb()).get('daily_entries', id); }
-export async function saveDailyEntry(entry: DailyEntry) { return (await getDb()).put('daily_entries', entry); }
-export async function deleteDailyEntry(id: string) { return (await getDb()).delete('daily_entries', id); }
+export async function saveDailyEntry(entry: DailyEntry) { 
+  const res = await (await getDb()).put('daily_entries', entry);
+  triggerSync();
+  return res;
+}
+export async function deleteDailyEntry(id: string) { 
+  const res = await (await getDb()).delete('daily_entries', id);
+  triggerSync();
+  return res;
+}
 
 // Costs
 export async function getAllCosts() { return (await getDb()).getAll('costs'); }
-export async function saveCost(cost: Cost) { return (await getDb()).put('costs', cost); }
-export async function deleteCost(id: string) { return (await getDb()).delete('costs', id); }
+export async function saveCost(cost: Cost) { 
+  const res = await (await getDb()).put('costs', cost);
+  triggerSync();
+  return res;
+}
+export async function deleteCost(id: string) { 
+  const res = await (await getDb()).delete('costs', id);
+  triggerSync();
+  return res;
+}
 
 // Refuels
 export async function getAllRefuels() { return (await getDb()).getAll('refuels'); }
-export async function saveRefuel(refuel: Refuel) { return (await getDb()).put('refuels', refuel); }
-export async function deleteRefuel(id: string) { return (await getDb()).delete('refuels', id); }
+export async function saveRefuel(refuel: Refuel) { 
+  const res = await (await getDb()).put('refuels', refuel);
+  triggerSync();
+  return res;
+}
+export async function deleteRefuel(id: string) { 
+  const res = await (await getDb()).delete('refuels', id);
+  triggerSync();
+  return res;
+}
 
 // Maintenances
 export async function getAllMaintenances() { return (await getDb()).getAll('maintenances'); }
-export async function saveMaintenance(maintenance: Maintenance) { return (await getDb()).put('maintenances', maintenance); }
-export async function deleteMaintenance(id: string) { return (await getDb()).delete('maintenances', id); }
+export async function saveMaintenance(maintenance: Maintenance) { 
+  const res = await (await getDb()).put('maintenances', maintenance);
+  triggerSync();
+  return res;
+}
+export async function deleteMaintenance(id: string) { 
+  const res = await (await getDb()).delete('maintenances', id);
+  triggerSync();
+  return res;
+}
 
 // Goals
 export async function getGoal(id: string) { return (await getDb()).get('goals', id); }
-export async function saveGoal(goal: Goal) { return (await getDb()).put('goals', goal); }
+export async function saveGoal(goal: Goal) { 
+  const res = await (await getDb()).put('goals', goal);
+  triggerSync();
+  return res;
+}
 
 // Fixed Payments
 export async function getAllFixedPayments() { return (await getDb()).getAll('fixed_payments'); }
-export async function saveFixedPayment(payment: FixedPayment) { return (await getDb()).put('fixed_payments', payment); }
-export async function deleteFixedPayment(id: string) { return (await getDb()).delete('fixed_payments', id); }
+export async function saveFixedPayment(payment: FixedPayment) { 
+  const res = await (await getDb()).put('fixed_payments', payment);
+  triggerSync();
+  return res;
+}
+export async function deleteFixedPayment(id: string) { 
+  const res = await (await getDb()).delete('fixed_payments', id);
+  triggerSync();
+  return res;
+}
 
 // Stops
 export async function getAllStopsByStatus(status: Stop['status']) { return (await getDb()).getAllFromIndex('stops', 'by-status', status); }
-export async function saveStop(stop: Stop) { return (await getDb()).put('stops', stop); }
-export async function clearAllStops() { return (await getDb()).clear('stops'); }
+export async function saveStop(stop: Stop) { 
+  const res = await (await getDb()).put('stops', stop);
+  triggerSync();
+  return res;
+}
+export async function clearAllStops() { 
+  const res = await (await getDb()).clear('stops');
+  triggerSync();
+  return res;
+}
 
 
 // Backup & Restore
@@ -249,10 +326,11 @@ export async function importDbFromJson(jsonData: string) {
         }
       });
     }));
-    await tx.done;
-  } catch(e) {
-    console.error('Falha na importação', e);
-    tx.abort();
-    throw e;
+      await tx.done;
+    } catch(e) {
+      console.error('Falha na importação', e);
+      tx.abort();
+      throw e;
+    }
+    triggerSync();
   }
-}
