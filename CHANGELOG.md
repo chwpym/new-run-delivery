@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis do projeto RunDelivery.
 
+## [Unreleased]
+
+### 🚀 Novas Features
+- **Onboarding Inicial**: Criada tela de boas vindas que obriga novos usuários a cadastrarem 1 Empresa e 1 Veículo antes de acessar o Dashboard, prevenindo erros no banco de dados local.
+
 ## [1.1.0] - 2026-03-12
 
 ### 🚀 Novas Features (Quick Wins)

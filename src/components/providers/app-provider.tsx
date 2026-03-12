@@ -27,6 +27,7 @@ interface AppContextType {
 
   // Mounted state
   isMounted: boolean;
+  isDataLoaded: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -39,6 +40,7 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [count, setCount] = useState(0);
   const [settings, setSettings] = useState<Settings>({ autoCount: true, stopDuration: 60, baseRadius: 200 });
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -84,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const companyExists = allCompanies.some(c => c.id === lastCompanyId);
         setActiveCompanyId(companyExists ? lastCompanyId : allCompanies[0].id);
       }
+      setIsDataLoaded(true);
     };
     loadInitialData();
   }, [updateConfirmedDeliveries]);
@@ -104,7 +107,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings, setSettings,
       companies, vehicles, refreshCompanies, refreshVehicles,
       activeCompanyId, setActiveCompanyId,
-      isMounted,
+      isMounted, isDataLoaded,
     }}>
       {children}
     </AppContext.Provider>

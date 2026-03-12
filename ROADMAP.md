@@ -31,8 +31,8 @@
 - [x] Gráficos no Dashboard (evolução mensal de ganhos/custos)
 
 ### v1.2 — UX e Cloud Sync
-- [ ] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real
-- [ ] Onboarding de primeiro uso (cadastrar empresa → veículo → começar)
+- [x] Onboarding de primeiro uso (Tela de boas vindas com configuração inicial)
+- [ ] Sincronização Nuvem Offline-First (Supabase + IndexedDB) para backup em tempo real (cadastrar empresa → veículo → começar)
 
 ### v1.3 — Comunicação e Gamificação
 - [ ] Compartilhar resumo mensal via WhatsApp
