@@ -101,9 +101,45 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     });
   };
 
+  const checkAndRecordStop = useCallback(async (currentCoords: GeolocationCoordinates) => {
+    if (!stopStartTimeRef.current || !settings.autoCount || !origin) return;
+
+    const now = Date.now();
+    const timeStopped = (now - stopStartTimeRef.current) / 1000;
+
+    if (timeStopped >= settings.stopDuration) {
+      // Verifica se a parada está fora da base
+      const distanceFromOrigin = getDistanceInMeters(currentCoords, origin);
+      if (distanceFromOrigin < settings.baseRadius) return;
+
+      // Verifica se a parada é muito perto da última registrada para evitar duplicatas
+      if (lastStopLocationRef.current) {
+        const distanceFromLastStop = getDistanceInMeters(currentCoords, lastStopLocationRef.current);
+        if (distanceFromLastStop < 150) return;
+      }
+      
+      const newStop: Stop = {
+        id: new Date().toISOString(),
+        timestamp: now,
+        location: { latitude: currentCoords.latitude, longitude: currentCoords.longitude },
+        status: 'pending',
+      };
+      await saveStop(newStop);
+
+      toast({
+        title: "Parada Automática Detectada!",
+        description: "Verifique na tela de auditoria para confirmar a entrega.",
+      });
+      playSuccessSound();
+      vibrateSuccess();
+
+      lastStopLocationRef.current = currentCoords;
+      stopStartTimeRef.current = null; 
+    }
+  }, [settings, origin, toast]);
+
   const processNewPosition = useCallback(async (position: GeolocationPosition) => {
     if (statusRef.current !== 'Tracking Active') return;
-    // Removido setStatus redundante - o status já é 'Tracking Active' aqui
     
     const { coords } = position;
     const now = Date.now();
@@ -122,45 +158,26 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
       if (!stopStartTimeRef.current) { // Se o timer não foi iniciado, inicie agora
         stopStartTimeRef.current = now;
       }
-      
-      const timeStopped = (now - stopStartTimeRef.current) / 1000;
-
-      // Se o tempo parado exceder a duração configurada
-      if (timeStopped >= settings.stopDuration) {
-        if (!settings.autoCount || !origin) return;
-
-        // Verifica se a parada está fora da base
-        const distanceFromOrigin = getDistanceInMeters(coords, origin);
-        if (distanceFromOrigin < settings.baseRadius) return;
-
-        // Verifica se a parada é muito perto da última registrada para evitar duplicatas
-        if (lastStopLocationRef.current) {
-          const distanceFromLastStop = getDistanceInMeters(coords, lastStopLocationRef.current);
-          if (distanceFromLastStop < 150) return;
-        }
-        
-        // Cria a nova parada com status PENDENTE para auditoria
-        const newStop: Stop = {
-          id: new Date().toISOString(),
-          timestamp: now,
-          location: { latitude: coords.latitude, longitude: coords.longitude },
-          status: 'pending',
-        };
-        await saveStop(newStop);
-
-        toast({
-          title: "Parada Automática Detectada!",
-          description: "Verifique na tela de auditoria para confirmar a entrega.",
-        });
-        playSuccessSound();
-        vibrateSuccess();
-
-        // Atualiza a localização da última parada e reseta o timer
-        lastStopLocationRef.current = coords;
-        stopStartTimeRef.current = null; 
-      }
+      await checkAndRecordStop(coords);
     }
-  }, [settings, origin, toast]);
+  }, [checkAndRecordStop]);
+
+  // Efeito para forçar a verificação do tempo parado periodicamente
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isTracking) {
+      intervalId = setInterval(() => {
+        if (stopStartTimeRef.current && lastPositionRef.current) {
+          checkAndRecordStop(lastPositionRef.current);
+        }
+      }, 5000); // Verifica a cada 5 segundos
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isTracking, checkAndRecordStop]);
 
 
   const handleToggleTracking = async () => {
