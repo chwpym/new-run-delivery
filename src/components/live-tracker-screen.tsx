@@ -68,12 +68,13 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
         id: new Date().toISOString(),
         timestamp: Date.now(),
         location: { latitude: position.coords.latitude, longitude: position.coords.longitude },
-        status: 'pending', // Salva como pendente para auditoria
+        status: 'confirmed', // Salva como confirmado para manual
       };
       await saveStop(newStop);
+      setCount((prev: number) => prev + 1);
       toast({
           title: "Parada Manual Adicionada!",
-          description: "Verifique na tela de auditoria para confirmar a entrega.",
+          description: "Entrega registrada com sucesso.",
       });
       vibrateSuccess(); // Vibra para dar feedback
     }, () => {

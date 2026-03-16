@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MainMenu } from "@/components/main-menu";
 import { useApp } from "@/components/providers/app-provider";
+import { clearAllStops } from "@/lib/db";
 
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { OnboardingScreen } from "@/components/onboarding-screen";
@@ -24,7 +25,11 @@ export default function MainLayout({
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetSessionDialogOpen, setIsResetSessionDialogOpen] = useState(false);
 
-  const confirmReset = () => { setCount(0); setIsResetDialogOpen(false); };
+  const confirmReset = async () => { 
+    setCount(0); 
+    await clearAllStops();
+    setIsResetDialogOpen(false); 
+  };
 
   const handleResetSession = () => {
     localStorage.clear();
