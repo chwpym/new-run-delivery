@@ -132,6 +132,7 @@ function PendingStopCard({ stop, onConfirm, onIgnore, openInMaps }: {
               <SelectItem value="delivery">Entrega</SelectItem>
               <SelectItem value="traffic_light">Sinal/Semáforo</SelectItem>
               <SelectItem value="junction">Cruzamento</SelectItem>
+              <SelectItem value="gas_station">Posto de Gasolina</SelectItem>
               <SelectItem value="other">Parada Aleatória</SelectItem>
             </SelectContent>
           </Select>

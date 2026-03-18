@@ -1,6 +1,6 @@
 // src/types/stop.ts
 export type StopStatus = 'pending' | 'confirmed' | 'ignored';
-export type StopCategory = 'delivery' | 'traffic_light' | 'junction' | 'other';
+export type StopCategory = 'delivery' | 'traffic_light' | 'junction' | 'gas_station' | 'other';
 
 export type Stop = {
   id: string; // uuid

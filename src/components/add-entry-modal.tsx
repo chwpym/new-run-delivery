@@ -71,7 +71,7 @@ export function AddEntryModal({ isOpen, onClose, onSave, entryToEdit, companies,
             setCompanyId(entryToEdit.companyId);
             setVehicleId(entryToEdit.vehicleId);
             // Se o modal for aberto a partir do rastreador, ele já vem com a contagem. Senão, usa a do registro.
-            setDeliveriesCount(String(entryToEdit.deliveriesCount || deliveryCount || ''));
+            setDeliveriesCount(String(deliveryCount || entryToEdit.deliveriesCount || ''));
             setDailyRate(String(entryToEdit.dailyRate || ''));
             setDeliveryFee(String(entryToEdit.deliveryFee || ''));
             setTips(String(entryToEdit.tips || ''));

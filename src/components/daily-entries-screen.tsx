@@ -290,7 +290,6 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                       <Button variant="destructive" size="icon" onClick={() => setEntryToDelete(entry)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </CardHeader>
-                  {!entry.isDayOff && (
                     <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                       {/* Coluna da Esquerda */}
                       <div className="space-y-1">
@@ -310,7 +309,6 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                         <span className="text-primary">Total Ganho Dia: R$ {entry.totalEarned?.toFixed(2) || '0.00'}</span>
                       </div>
                     </CardContent>
-                  )}
                 </Card>
               )) : <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>}
             </div>

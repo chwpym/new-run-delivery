@@ -53,6 +53,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   const lastPositionRef = useRef<GeolocationCoordinates | null>(null);
   const stopStartTimeRef = useRef<number | null>(null);
   const lastStopLocationRef = useRef<GeolocationCoordinates | null>(null);
+  const hasRecordedThisStopRef = useRef(false);
 
 
   const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
@@ -103,6 +104,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
   const checkAndRecordStop = useCallback(async (currentCoords: GeolocationCoordinates) => {
     if (!stopStartTimeRef.current || !settings.autoCount || !origin) return;
+    if (hasRecordedThisStopRef.current) return; // Se já gravou nesta parada, ignora
 
     const now = Date.now();
     const timeStopped = (now - stopStartTimeRef.current) / 1000;
@@ -135,6 +137,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
 
       lastStopLocationRef.current = currentCoords;
       stopStartTimeRef.current = null; 
+      hasRecordedThisStopRef.current = true; // Seta como gravada
     }
   }, [settings, origin, toast]);
 
@@ -154,6 +157,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     if (distanceMoved > 50) { // Se moveu, reseta o timer de parada
       lastPositionRef.current = coords;
       stopStartTimeRef.current = null; 
+      hasRecordedThisStopRef.current = false; // Reseta o estado para nova parada
     } else { // Se não se moveu (ou moveu pouco)
       if (!stopStartTimeRef.current) { // Se o timer não foi iniciado, inicie agora
         stopStartTimeRef.current = now;
@@ -196,10 +200,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
     const selectedCompany = companies.find(c => c.id === activeCompanyId);
     if (!selectedCompany?.baseLocation) { return alert("Empresa sem base cadastrada."); }
     
-    // Limpa paradas antigas antes de iniciar
-    await clearAllStops();
-    setCount(0); // Reseta o contador de entregas do dia
-    
+    // O reset agora deve ser feito manualmente ou ao Encerrar Dia.
     setOrigin(selectedCompany.baseLocation);
     setStatus('Tracking Active');
     statusRef.current = 'Tracking Active';
