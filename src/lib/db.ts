@@ -57,10 +57,15 @@ interface RunDeliveryDBSchema extends DBSchema {
     value: Stop;
     indexes: { 'by-status': string };
   };
+  app_logs: {
+    key: string;
+    value: { id: string; timestamp: number; message: string; data?: any; level: 'info' | 'warn' | 'error' };
+    indexes: { 'by-timestamp': number };
+  };
 }
 
 const DB_NAME = 'RunDeliveryDB';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 let dbInstance: ReturnType<typeof openDB<RunDeliveryDBSchema>> | null = null;
 
@@ -122,6 +127,12 @@ export const getDb = () => {
         if (!db.objectStoreNames.contains('stops')) {
           const store = db.createObjectStore('stops', { keyPath: 'id' });
           store.createIndex('by-status', 'status');
+        }
+      }
+      if (oldVersion < 7) {
+        if (!db.objectStoreNames.contains('app_logs')) {
+          const store = db.createObjectStore('app_logs', { keyPath: 'id' });
+          store.createIndex('by-timestamp', 'timestamp');
         }
       }
     },
@@ -259,6 +270,32 @@ export async function clearAllStops() {
   return res;
 }
 
+// Logs
+export async function addLog(message: string, data?: any, level: 'info' | 'warn' | 'error' = 'info') {
+  try {
+    const db = await getDb();
+    await db.put('app_logs', {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      message,
+      data,
+      level
+    });
+  } catch (e) {
+    console.error("Falha ao salvar log", e);
+  }
+}
+
+export async function getLogs() {
+  const db = await getDb();
+  const logs = await db.getAllFromIndex('app_logs', 'by-timestamp');
+  return logs.sort((a, b) => b.timestamp - a.timestamp); // Mais recentes primeiro
+}
+
+export async function clearLogs() {
+  const db = await getDb();
+  await db.clear('app_logs');
+}
 
 // Backup & Restore
 export async function exportDbToJson() {

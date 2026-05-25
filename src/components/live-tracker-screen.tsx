@@ -10,7 +10,7 @@ import type { Settings, Status, DailyEntry, Vehicle, Stop } from '@/types';
 import type { Company } from '@/types/company';
 import { playErrorSound, playSuccessSound, vibrateError, vibrateSuccess } from '@/lib/alerts';
 import { AddEntryModal } from './add-entry-modal';
-import { getEntryById, saveDailyEntry, saveStop, clearAllStops } from '@/lib/db';
+import { getEntryById, saveDailyEntry, saveStop, clearAllStops, addLog } from '@/lib/db';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,8 +56,17 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
   const hasRecordedThisStopRef = useRef(false);
 
 
-  const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (err: any) { console.error(`${err.name}, ${err.message}`); } } };
-  const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; } };
+  const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { wakeLockRef.current = await navigator.wakeLock.request('screen'); addLog("WakeLock acquired"); } catch (err: any) { addLog("WakeLock falhou", { error: err.message }, 'error'); console.error(`${err.name}, ${err.message}`); } } else { addLog("WakeLock não suportado no navegador", {}, 'warn'); } };
+  const releaseWakeLock = async () => { if (wakeLockRef.current) { await wakeLockRef.current.release(); wakeLockRef.current = null; addLog("WakeLock released"); } };
+
+  // Registrar mudanças de visibilidade (app foi pra background)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      addLog(`App visibility: ${document.visibilityState}`);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   // Função para lidar com o INCREMENTO manual
   const handleManualIncrement = () => {
@@ -138,6 +147,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
       lastStopLocationRef.current = currentCoords;
       stopStartTimeRef.current = null; 
       hasRecordedThisStopRef.current = true; // Seta como gravada
+      addLog("Parada automática registrada!", { coords: currentCoords, timeStopped });
     }
   }, [settings, origin, toast]);
 
@@ -193,6 +203,7 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
       releaseWakeLock();
       lastPositionRef.current = null;
       stopStartTimeRef.current = null;
+      addLog("Rastreamento pausado");
       return;
     }
     if (!navigator.geolocation) { return alert("Geolocalização não é suportada."); }
@@ -215,7 +226,10 @@ export function LiveTrackerScreen({ count, setCount, settings, companies, vehicl
       statusRef.current = 'GPS Error';
       playErrorSound();
       vibrateError();
+      addLog("Erro de GPS", { code: error.code, message: error.message }, 'error');
     }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    
+    addLog("Rastreamento iniciado", { origin, settings });
   };
   
   const handleEndDay = async () => {

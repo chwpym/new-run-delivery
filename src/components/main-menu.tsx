@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Menu, Home, ListChecks, DollarSign, Fuel, Wrench, Target, BarChart2, Database,
-  Building, Car, LogOut, MapPin, HandCoins, Settings, Route
+  Building, Car, LogOut, MapPin, HandCoins, Settings, Route, Terminal
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
@@ -33,6 +33,7 @@ const menuItems = [
 const configItems = [
   { href: '/empresas', label: 'Gerenciar Empresas', icon: Building },
   { href: '/veiculos', label: 'Gerenciar Veículos', icon: Car },
+  { href: '/logs', label: 'Logs de Diagnóstico', icon: Terminal },
 ];
 
 export function MainMenu({ onResetSession }: MainMenuProps) {

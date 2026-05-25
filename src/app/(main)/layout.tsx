@@ -15,6 +15,7 @@ import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { OnboardingScreen } from "@/components/onboarding-screen";
 import { LoginScreen } from "@/components/login-screen";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
 
 export default function MainLayout({
   children,
@@ -31,7 +32,8 @@ export default function MainLayout({
     setIsResetDialogOpen(false); 
   };
 
-  const handleResetSession = () => {
+  const handleResetSession = async () => {
+    await supabase.auth.signOut();
     localStorage.clear();
     window.location.reload();
   };
