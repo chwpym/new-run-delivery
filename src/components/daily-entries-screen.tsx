@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListChecks, PlusCircle, Edit, Trash2, SlidersHorizontal, Coffee, Briefcase } from "lucide-react";
+import { ListChecks, PlusCircle, Edit, Trash2, SlidersHorizontal, Coffee, Briefcase, Share2 } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -189,6 +189,33 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
   const getCompanyName = (companyId?: string) => companies.find(c => c.id === companyId)?.name || 'N/A';
   const getVehicleName = (vehicleId?: string) => vehicles.find(v => v.id === vehicleId)?.name || 'N/A';
 
+  const handleShareDailyWhatsApp = (entry: DailyEntry) => {
+    const dateStr = format(parseISO(entry.date), "dd/MM/yyyy", { locale: ptBR });
+    const company = getCompanyName(entry.companyId);
+    const vehicle = getVehicleName(entry.vehicleId);
+    
+    let text = `*🚗 Resumo RunDelivery - ${dateStr}*\n` +
+      `🏢 *Empresa:* ${entry.isDayOff ? 'Folga' : company}\n`;
+      
+    if (!entry.isDayOff) {
+      text += `📦 *Entregas:* ${entry.deliveriesCount || 0}\n` +
+        `🛣️ *Km Rodados:* ${entry.kmDriven?.toFixed(1) || 0} km\n` +
+        `🛵 *Veículo:* ${vehicle}\n\n` +
+        `💵 *Diária/Fixo:* R$ ${(entry.dailyRate || 0).toFixed(2)}\n` +
+        `📦 *Taxas de Entrega:* R$ ${(entry.totalFromDeliveries || 0).toFixed(2)}\n` +
+        `🪙 *Gorjetas:* R$ ${(entry.tips || 0).toFixed(2)}\n` +
+        `⚡ *Tx Extra/Dif:* R$ ${(entry.extraFee || 0).toFixed(2)}\n\n` +
+        `*💰 Total Ganho Dia:* R$ ${(entry.totalEarned || 0).toFixed(2)}`;
+    } else {
+      text += `💤 *Dia de folga/descanso*`;
+    }
+    
+    text += `\n\n_Gerado pelo app RunDelivery_`;
+    
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <>
       <div className="p-4">
@@ -286,6 +313,7 @@ export function DailyEntriesScreen({ deliveryCount }: DailyEntriesScreenProps) {
                       </CardTitle>
                     </div>
                     <div className="flex gap-2">
+                      <Button variant="outline" size="icon" className="bg-green-600/10 text-green-600 hover:bg-green-600/20 border-green-600/20" onClick={() => handleShareDailyWhatsApp(entry)}><Share2 className="h-4 w-4" /></Button>
                       <Button variant="outline" size="icon" onClick={() => handleOpenModal(entry)}><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => setEntryToDelete(entry)}><Trash2 className="h-4 w-4" /></Button>
                     </div>

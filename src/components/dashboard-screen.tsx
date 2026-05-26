@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, MapPin, PlusCircle, TrendingUp, Target, TrendingDown, Package, Gauge } from "lucide-react";
-import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getGoal, getAllFixedPayments } from '@/lib/db';
+import { DollarSign, MapPin, PlusCircle, TrendingUp, Target, TrendingDown, Package, Gauge, AlertTriangle } from "lucide-react";
+import { getAllEntries, getAllCosts, getAllRefuels, getAllMaintenances, getGoal, getAllFixedPayments, getAllVehicles } from '@/lib/db';
 import { format, startOfMonth, endOfMonth, differenceInCalendarDays, eachDayOfInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from './ui/progress';
@@ -23,6 +23,7 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, avgDeliveries: 0, costPerKm: 0, totalDeliveries: 0, workDays: 0, totalKm: 0 });
   const [goalProgress, setGoalProgress] = useState({ current: 0, goal: 0, progress: 0 });
   const [chartData, setChartData] = useState<any[]>([]);
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<{ vehicleName: string; currentKm: number; lastMaintenanceKm: number; kmSinceMaintenance: number }[]>([]);
   
   const now = new Date();
   const [filterStart, setFilterStart] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
@@ -112,6 +113,39 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       console.error("Invalid date interval for chartData");
     }
 
+    // Calcular alertas de manutenção preventiva
+    try {
+      const allVehicles = await getAllVehicles();
+      const alertsList: { vehicleName: string; currentKm: number; lastMaintenanceKm: number; kmSinceMaintenance: number }[] = [];
+      
+      for (const vehicle of allVehicles) {
+        const vehicleMaintenances = maintenances.filter(m => m.vehicleId === vehicle.id);
+        const lastMaintKm = vehicleMaintenances.reduce((max, m) => Math.max(max, m.km || 0), 0);
+        
+        const vehicleDailyEntries = entries.filter(e => e.vehicleId === vehicle.id);
+        const maxDailyKm = vehicleDailyEntries.reduce((max, e) => Math.max(max, e.endKm || 0), 0);
+        
+        const vehicleRefuels = refuels.filter(r => r.vehicleId === vehicle.id);
+        const maxRefuelKm = vehicleRefuels.reduce((max, r) => Math.max(max, r.km || 0), 0);
+        
+        const currentKm = Math.max(maxDailyKm, maxRefuelKm);
+        const kmSinceMaintenance = currentKm - lastMaintKm;
+        
+        // Alerta se rodou mais de 5000 km desde a última manutenção
+        if (currentKm > 0 && kmSinceMaintenance >= 5000) {
+          alertsList.push({
+            vehicleName: vehicle.name,
+            currentKm,
+            lastMaintenanceKm: lastMaintKm,
+            kmSinceMaintenance
+          });
+        }
+      }
+      setMaintenanceAlerts(alertsList);
+    } catch (e) {
+      console.error("Erro ao calcular alertas de manutenção", e);
+    }
+
   }, [filterStart, filterEnd, activeCompanyId]);
 
   useEffect(() => {
@@ -121,6 +155,24 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   return (
     <div className="p-4 space-y-4">
       <DateRangeFilter onFilterChange={(s, e) => { setFilterStart(s); setFilterEnd(e); }} />
+
+      {maintenanceAlerts.length > 0 && (
+        <div className="space-y-2">
+          {maintenanceAlerts.map((alert, idx) => (
+            <Card key={idx} className="bg-amber-600/10 border-amber-600 text-amber-700 dark:text-amber-500">
+              <CardContent className="flex items-center gap-3 p-4">
+                <AlertTriangle className="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-500" />
+                <div className="flex-1 text-sm">
+                  <p className="font-bold">⚠️ Lembrete de Manutenção Preventiva!</p>
+                  <p>
+                    O veículo <strong>{alert.vehicleName}</strong> rodou <strong>{alert.kmSinceMaintenance} km</strong> desde a última manutenção registrada (KM Atual: {alert.currentKm} km / Última Manutenção: {alert.lastMaintenanceKm || 0} km). Recomendamos realizar uma revisão ou troca de óleo em breve!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
