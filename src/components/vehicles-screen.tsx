@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Car, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { Car, PlusCircle, Edit, Trash2, Wrench } from "lucide-react";
 import { AddVehicleModal } from './add-vehicle-modal';
+import { MaintenanceLimitsModal } from './maintenance-limits-modal';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -29,6 +30,18 @@ export function VehiclesScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [vehicleToEdit, setVehicleToEdit] = useState<Vehicle | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [limitsVehicle, setLimitsVehicle] = useState<Vehicle | null>(null);
+
+  const handleSaveLimits = async (limits: NonNullable<Vehicle['maintenanceLimits']>) => {
+    if (!limitsVehicle) return;
+    const updatedVehicle: Vehicle = {
+      ...limitsVehicle,
+      maintenanceLimits: limits
+    };
+    await saveVehicle(updatedVehicle);
+    setLimitsVehicle(null);
+    fetchVehicles();
+  };
 
   const handleOpenEditModal = (vehicle: Vehicle) => {
     setVehicleToEdit(vehicle);
@@ -79,16 +92,20 @@ export function VehiclesScreen() {
                     {vehicle.plate && <p className="text-sm text-muted-foreground">Placa: {vehicle.plate}</p>}
                     <p className="text-sm text-muted-foreground">Consumo Médio: {vehicle.averageConsumption} km/L</p>
                   </div>
-                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleOpenEditModal(vehicle)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="destructive" size="icon" onClick={() => setVehicleToDelete(vehicle)}>
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
-                  </div>
+                    <div className="flex gap-2">
+                     <Button variant="outline" size="icon" className="bg-primary/5 text-primary hover:bg-primary/10 border-primary/20" onClick={() => setLimitsVehicle(vehicle)}>
+                       <Wrench className="h-4 w-4" />
+                       <span className="sr-only">Limites</span>
+                     </Button>
+                     <Button variant="outline" size="icon" onClick={() => handleOpenEditModal(vehicle)}>
+                       <Edit className="h-4 w-4" />
+                       <span className="sr-only">Editar</span>
+                     </Button>
+                     <Button variant="destructive" size="icon" onClick={() => setVehicleToDelete(vehicle)}>
+                       <Trash2 className="h-4 w-4" />
+                       <span className="sr-only">Excluir</span>
+                     </Button>
+                   </div>
                 </Card>
               ))
             ) : (
@@ -102,6 +119,12 @@ export function VehiclesScreen() {
         onClose={() => { setIsModalOpen(false); setVehicleToEdit(null); }}
         onSave={handleSaveVehicle}
         vehicleToEdit={vehicleToEdit}
+      />
+      <MaintenanceLimitsModal
+        isOpen={!!limitsVehicle}
+        onClose={() => setLimitsVehicle(null)}
+        vehicle={limitsVehicle}
+        onSave={handleSaveLimits}
       />
       <AlertDialog open={!!vehicleToDelete} onOpenChange={() => setVehicleToDelete(null)}>
         <AlertDialogContent>

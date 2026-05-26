@@ -23,7 +23,17 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [stats, setStats] = useState({ gross: 0, net: 0, totalCosts: 0, avgDeliveries: 0, costPerKm: 0, totalDeliveries: 0, workDays: 0, totalKm: 0 });
   const [goalProgress, setGoalProgress] = useState({ current: 0, goal: 0, progress: 0 });
   const [chartData, setChartData] = useState<any[]>([]);
-  const [maintenanceAlerts, setMaintenanceAlerts] = useState<{ vehicleName: string; currentKm: number; lastMaintenanceKm: number; kmSinceMaintenance: number }[]>([]);
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<{
+    vehicleName: string;
+    itemName: string;
+    currentKm: number;
+    lastMaintenanceKm: number;
+    kmSinceMaintenance: number;
+    limitKm: number;
+    limitMonths: number;
+    monthsSince: number | null;
+    reason: 'km' | 'time';
+  }[]>([]);
   
   const now = new Date();
   const [filterStart, setFilterStart] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
@@ -113,32 +123,69 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       console.error("Invalid date interval for chartData");
     }
 
-    // Calcular alertas de manutenção preventiva
+    // Calcular alertas de manutenção preventiva por item/peça
     try {
       const allVehicles = await getAllVehicles();
-      const alertsList: { vehicleName: string; currentKm: number; lastMaintenanceKm: number; kmSinceMaintenance: number }[] = [];
-      
+      const alertsList: typeof maintenanceAlerts = [];
+
+      const DEFAULT_LIMITS = {
+        "Óleo": { kmLimit: 1000, monthLimit: 6 },
+        "Filtro de Ar": { kmLimit: 5000, monthLimit: 6 },
+        "Pastilha de Freio": { kmLimit: 8000, monthLimit: 12 },
+        "Relação (Corrente)": { kmLimit: 5000, monthLimit: 12 },
+        "Pneu Dianteiro": { kmLimit: 15000, monthLimit: 24 },
+        "Pneu Traseiro": { kmLimit: 12000, monthLimit: 24 },
+        "Vela de Ignição": { kmLimit: 10000, monthLimit: 12 }
+      };
+
       for (const vehicle of allVehicles) {
-        const vehicleMaintenances = maintenances.filter(m => m.vehicleId === vehicle.id);
-        const lastMaintKm = vehicleMaintenances.reduce((max, m) => Math.max(max, m.km || 0), 0);
-        
+        const limits = vehicle.maintenanceLimits || DEFAULT_LIMITS;
+
         const vehicleDailyEntries = entries.filter(e => e.vehicleId === vehicle.id);
         const maxDailyKm = vehicleDailyEntries.reduce((max, e) => Math.max(max, e.endKm || 0), 0);
-        
+
         const vehicleRefuels = refuels.filter(r => r.vehicleId === vehicle.id);
         const maxRefuelKm = vehicleRefuels.reduce((max, r) => Math.max(max, r.km || 0), 0);
-        
+
         const currentKm = Math.max(maxDailyKm, maxRefuelKm);
-        const kmSinceMaintenance = currentKm - lastMaintKm;
-        
-        // Alerta se rodou mais de 5000 km desde a última manutenção
-        if (currentKm > 0 && kmSinceMaintenance >= 5000) {
-          alertsList.push({
-            vehicleName: vehicle.name,
-            currentKm,
-            lastMaintenanceKm: lastMaintKm,
-            kmSinceMaintenance
-          });
+        const vehicleMaintenances = maintenances.filter(m => m.vehicleId === vehicle.id);
+
+        for (const [itemName, config] of Object.entries(limits)) {
+          // Busca a manutenção mais recente que combine com o nome do item
+          const matchingMaint = vehicleMaintenances
+            .filter(m => m.description.toLowerCase().includes(itemName.toLowerCase()) ||
+                         itemName.toLowerCase().includes(m.description.toLowerCase()))
+            .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+          const lastMaintKm = matchingMaint ? (matchingMaint.km || 0) : 0;
+          const lastMaintDate = matchingMaint ? parseISO(matchingMaint.date) : null;
+
+          const kmSinceMaintenance = currentKm - lastMaintKm;
+
+          let monthsSince = Infinity;
+          if (lastMaintDate) {
+            const today = new Date();
+            monthsSince = (today.getFullYear() - lastMaintDate.getFullYear()) * 12 + (today.getMonth() - lastMaintDate.getMonth());
+          } else {
+            monthsSince = currentKm > 0 ? Infinity : 0;
+          }
+
+          const isKmExpired = currentKm > 0 && kmSinceMaintenance >= config.kmLimit;
+          const isTimeExpired = monthsSince >= config.monthLimit;
+
+          if (isKmExpired || isTimeExpired) {
+            alertsList.push({
+              vehicleName: vehicle.name,
+              itemName,
+              currentKm,
+              lastMaintenanceKm: lastMaintKm,
+              kmSinceMaintenance,
+              limitKm: config.kmLimit,
+              limitMonths: config.monthLimit,
+              monthsSince: lastMaintDate ? monthsSince : null,
+              reason: isKmExpired ? 'km' : 'time'
+            });
+          }
         }
       }
       setMaintenanceAlerts(alertsList);
@@ -163,9 +210,17 @@ export function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               <CardContent className="flex items-center gap-3 p-4">
                 <AlertTriangle className="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-500" />
                 <div className="flex-1 text-sm">
-                  <p className="font-bold">⚠️ Lembrete de Manutenção Preventiva!</p>
+                  <p className="font-bold">⚠️ Venceu a manutenção de: {alert.itemName} ({alert.vehicleName})</p>
                   <p>
-                    O veículo <strong>{alert.vehicleName}</strong> rodou <strong>{alert.kmSinceMaintenance} km</strong> desde a última manutenção registrada (KM Atual: {alert.currentKm} km / Última Manutenção: {alert.lastMaintenanceKm || 0} km). Recomendamos realizar uma revisão ou troca de óleo em breve!
+                    {alert.reason === 'km' ? (
+                      <>
+                        O item rodou <strong>{alert.kmSinceMaintenance} km</strong> desde a última troca/manutenção (Limite: <strong>{alert.limitKm} km</strong>). (KM Atual: {alert.currentKm} km / Última Troca: {alert.lastMaintenanceKm || 0} km).
+                      </>
+                    ) : (
+                      <>
+                        A última troca foi há <strong>{alert.monthsSince === Infinity ? 'muito tempo (nunca registrada)' : `${alert.monthsSince} meses`}</strong> (Limite: <strong>{alert.limitMonths} meses</strong>). Recomendamos realizar a troca/revisão em breve!
+                      </>
+                    )}
                   </p>
                 </div>
               </CardContent>

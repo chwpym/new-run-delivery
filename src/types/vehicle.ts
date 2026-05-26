@@ -4,4 +4,11 @@ export type Vehicle = {
   name: string;
   plate?: string;
   averageConsumption: number; // km/L
+  maintenanceLimits?: {
+    [itemName: string]: {
+      kmLimit: number;
+      monthLimit: number;
+    };
+  };
 };
+
